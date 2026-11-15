@@ -3,8 +3,12 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Clear-text HTTP is needed for a Grafana or Home Assistant on the local network.
+         The app itself refuses http:// for any address outside it (see Addresses). -->
     <application
+        android:name=".MateViewApplication"
         android:allowBackup="false"
+        android:usesCleartextTraffic="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"

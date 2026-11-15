@@ -6,4 +6,44 @@
     <string name="nav_dashboards">Tableaux</string>
     <string name="nav_settings">Réglages</string>
     <string name="placeholder_not_built">Cet écran n\'est pas encore construit.</string>
+
+    <string name="home_not_connected">Configurez la connexion à vos données pour commencer.</string>
+    <string name="home_open_settings">Ouvrir les réglages</string>
+    <string name="home_connected">Connecté · %1$s</string>
+
+    <string name="settings_connection">Connexion</string>
+    <string name="settings_mode_ha">Home Assistant</string>
+    <string name="settings_mode_direct">Grafana direct</string>
+    <string name="settings_mode_ha_help">Passe par Home Assistant et son panneau hass_ingress vers Grafana. Fonctionne hors de la maison avec l\'adresse distante de Home Assistant.</string>
+    <string name="settings_mode_direct_help">Parle à Grafana à sa propre adresse : réseau local, VPN ou proxy inverse.</string>
+    <string name="settings_ha_url">Adresse de Home Assistant</string>
+    <string name="settings_ha_token">Jeton d\'accès longue durée</string>
+    <string name="settings_ha_panel">Nom du panneau ingress</string>
+    <string name="settings_ha_panel_help">Le nom de l\'entrée Grafana dans la configuration de hass_ingress.</string>
+    <string name="settings_grafana_url">Adresse de Grafana</string>
+    <string name="settings_grafana_token">Jeton de compte de service (facultatif)</string>
+    <string name="settings_token_stored">Un jeton est enregistré. Laissez vide pour le garder.</string>
+    <string name="settings_save_and_test">Enregistrer et tester</string>
+    <string name="settings_error_empty_url">Saisissez une adresse.</string>
+    <string name="settings_error_invalid_url">Cette adresse n\'est pas valide.</string>
+    <string name="settings_error_insecure_url">Hors du réseau local, l\'adresse doit commencer par https://.</string>
+    <string name="settings_error_missing_token">Saisissez un jeton d\'accès.</string>
+
+    <string name="settings_test_title">Test de connexion</string>
+    <string name="step_reach_ha">Joindre Home Assistant</string>
+    <string name="step_auth_ha">S\'identifier avec le jeton</string>
+    <string name="step_find_panel">Trouver le panneau ingress</string>
+    <string name="step_open_session">Ouvrir la session ingress</string>
+    <string name="step_grafana">Joindre Grafana</string>
+    <string name="step_datasource">Trouver la source de données</string>
+    <string name="step_database">Lire la base de données</string>
+    <string name="settings_report_ok">Voitures trouvées : %1$s. Compte de la base : %2$s.</string>
+    <string name="settings_warning_can_write">Le compte « %1$s » de la base peut modifier vos données. Faites utiliser à Grafana un compte en lecture seule.</string>
+    <string name="settings_warning_schema_older">Votre base est plus ancienne que la version pour laquelle cette appli a été écrite. Certains écrans peuvent échouer.</string>
+    <string name="settings_warning_schema_newer">Votre base est plus récente que la version pour laquelle cette appli a été écrite. Certains écrans peuvent échouer tant que l\'appli n\'est pas mise à jour.</string>
+    <string name="settings_car">Voiture</string>
+
+    <string name="settings_about">À propos</string>
+    <string name="about_version">MateView %1$s</string>
+    <string name="about_license">Logiciel libre sous licence GNU Affero General Public License, version 3 ou ultérieure, sans garantie.</string>
 </resources>
