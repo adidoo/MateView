@@ -3,6 +3,7 @@ package adidoo.mateview
 
 import adidoo.mateview.data.ConnectionTester
 import adidoo.mateview.data.DataAccess
+import adidoo.mateview.data.Demo
 import adidoo.mateview.data.QueryCache
 import adidoo.mateview.data.repo.BatteryRepository
 import adidoo.mateview.data.repo.ChargesRepository
@@ -47,6 +48,7 @@ class MateViewApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        Demo.enabled = BuildConfig.DEBUG && File(filesDir, "demo").exists()
         container = AppContainer(this)
         // The OpenStreetMap tile servers ask every app to identify itself.
         // MapLibre must be initialised before it accepts an HTTP client.

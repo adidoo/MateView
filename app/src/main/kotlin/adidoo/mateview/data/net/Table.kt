@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 package adidoo.mateview.data.net
 
+import adidoo.mateview.data.Demo
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -25,7 +26,10 @@ class Table(val columns: List<String>, private val values: List<List<JsonElement
         return values[index].getOrNull(row)?.takeUnless { it is JsonNull } as? JsonPrimitive
     }
 
-    fun string(row: Int, column: String): String? = cell(row, column)?.contentOrNull
+    fun string(row: Int, column: String): String? {
+        val value = cell(row, column)?.contentOrNull
+        return if (value != null && Demo.enabled && column in Demo.PLACE_COLUMNS) Demo.alias(value) else value
+    }
     fun double(row: Int, column: String): Double? = cell(row, column)?.doubleOrNull
     fun long(row: Int, column: String): Long? =
         cell(row, column)?.let { it.longOrNull ?: it.doubleOrNull?.toLong() }

@@ -2,6 +2,7 @@
 package adidoo.mateview.ui.screens.overview
 
 import adidoo.mateview.AppContainer
+import adidoo.mateview.data.Demo
 import adidoo.mateview.data.NotConnectedException
 import adidoo.mateview.data.repo.Overview
 import androidx.lifecycle.ViewModel
@@ -44,7 +45,7 @@ class OverviewViewModel(private val container: AppContainer) : ViewModel() {
     init {
         viewModelScope.launch {
             container.settings.connection
-                .map { Triple(it.verified, it.carId, it.carName) }
+                .map { Triple(it.verified, it.carId, if (Demo.enabled) Demo.CAR_NAME else it.carName) }
                 .distinctUntilChanged()
                 .collect { (verified, id, name) ->
                     carId = id.takeIf { verified }

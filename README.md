@@ -9,6 +9,13 @@ installation. Read-only, in portrait and landscape, at home and away.
 the author's installation and has not been tried anywhere else yet. Expect
 rough edges.
 
+<p>
+  <img src="docs/screenshots/home.png" alt="Home screen" width="200">
+  <img src="docs/screenshots/drives.png" alt="Drives list" width="200">
+  <img src="docs/screenshots/drive-details.png" alt="Drive details" width="200">
+  <img src="docs/screenshots/dashboards.png" alt="Dashboards" width="200">
+</p>
+
 ## What it shows
 
 - **Home**: current state, battery, charging power and voltage, range,
