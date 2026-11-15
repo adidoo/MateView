@@ -14,6 +14,7 @@ import adidoo.mateview.ui.components.StatTile
 import adidoo.mateview.ui.components.StateBand
 import adidoo.mateview.ui.components.TileGrid
 import adidoo.mateview.ui.components.TimeLineChart
+import adidoo.mateview.ui.components.errorMessage
 import adidoo.mateview.ui.components.formatNumber
 import android.text.format.DateFormat
 import android.text.format.DateUtils
@@ -221,7 +222,7 @@ private fun Header(state: OverviewUiState, onPeriod: (OverviewPeriod) -> Unit) {
 @Composable
 private fun ErrorNote(message: String, onRetry: () -> Unit) {
     Panel(stringResource(R.string.overview_error)) {
-        Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+        Text(errorMessage(message), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
         TextButton(onClick = onRetry) { Text(stringResource(R.string.retry)) }
     }
 }

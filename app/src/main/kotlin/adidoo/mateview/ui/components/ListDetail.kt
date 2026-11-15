@@ -174,7 +174,7 @@ fun StaleDataNote(fetchedAtMs: Long) {
 @Composable
 fun ErrorPanel(message: String, onRetry: () -> Unit) {
     Panel(stringResource(R.string.overview_error)) {
-        Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+        Text(errorMessage(message), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
         TextButton(onClick = onRetry) { Text(stringResource(R.string.retry)) }
     }
 }

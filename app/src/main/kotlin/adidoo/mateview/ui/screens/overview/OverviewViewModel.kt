@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import adidoo.mateview.ui.components.errorText
 import java.io.IOException
 
 /** The periods offered on the home screen; the first one is TeslaMate's default. */
@@ -57,7 +58,7 @@ class OverviewViewModel(private val container: AppContainer) : ViewModel() {
 
     fun setPeriod(period: OverviewPeriod) {
         if (period == _state.value.period) return
-        _state.update { it.copy(period = period) }
+        _state.update { it.copy(period = period, overview = null) }
         load()
     }
 
@@ -82,7 +83,7 @@ class OverviewViewModel(private val container: AppContainer) : ViewModel() {
                 _state.update { it.copy(loading = false, connected = false) }
             } catch (e: IOException) {
                 if (!quiet || _state.value.overview == null) {
-                    _state.update { it.copy(loading = false, error = e.message ?: e.javaClass.simpleName) }
+                    _state.update { it.copy(loading = false, error = errorText(e)) }
                 }
             }
         }

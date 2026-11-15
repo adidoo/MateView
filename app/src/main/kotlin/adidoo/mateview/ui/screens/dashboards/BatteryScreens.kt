@@ -65,6 +65,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import adidoo.mateview.ui.components.errorText
 import java.io.IOException
 
 private val ColorBattery = Color(0xFF34C38F)
@@ -88,7 +89,8 @@ class PeriodViewModel<T>(initial: ListPeriod, private val fetch: suspend (ListPe
 
     fun setPeriod(period: ListPeriod) {
         if (period == _state.value.period) return
-        _state.update { it.copy(period = period) }
+        // Drop the data of the previous period: if the new one fails, nothing stale stays on screen.
+        _state.update { it.copy(period = period, data = null) }
         refresh()
     }
 
@@ -101,7 +103,7 @@ class PeriodViewModel<T>(initial: ListPeriod, private val fetch: suspend (ListPe
                 val data = fetch(period)
                 _state.update { it.copy(loading = false, data = data) }
             } catch (e: IOException) {
-                _state.update { it.copy(loading = false, error = e.message ?: e.javaClass.simpleName) }
+                _state.update { it.copy(loading = false, error = errorText(e)) }
             }
         }
     }

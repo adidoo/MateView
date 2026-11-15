@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import adidoo.mateview.ui.components.errorText
 import java.io.IOException
 
 data class ListUiState<T>(
@@ -60,7 +61,7 @@ abstract class CarListViewModel<T>(protected val container: AppContainer) : View
 
     fun setPeriod(period: ListPeriod) {
         if (period == _state.value.period) return
-        _state.update { it.copy(period = period) }
+        _state.update { it.copy(period = period, data = null, selectedId = null) }
         refresh()
     }
 
@@ -78,7 +79,7 @@ abstract class CarListViewModel<T>(protected val container: AppContainer) : View
             } catch (e: NotConnectedException) {
                 _state.update { it.copy(loading = false, connected = false) }
             } catch (e: IOException) {
-                _state.update { it.copy(loading = false, error = e.message ?: e.javaClass.simpleName) }
+                _state.update { it.copy(loading = false, error = errorText(e)) }
             }
         }
     }
@@ -102,7 +103,7 @@ class DetailViewModel<T>(private val fetch: suspend () -> T?) : ViewModel() {
                 val data = fetch()
                 _state.update { it.copy(loading = false, data = data, missing = data == null) }
             } catch (e: IOException) {
-                _state.update { it.copy(loading = false, error = e.message ?: e.javaClass.simpleName) }
+                _state.update { it.copy(loading = false, error = errorText(e)) }
             }
         }
     }

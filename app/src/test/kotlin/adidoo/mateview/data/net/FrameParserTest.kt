@@ -15,7 +15,7 @@ class FrameParserTest {
             {"results":{"A":{"status":200,"frames":[{"schema":{"refId":"A","fields":[
               {"name":"id","type":"number"},{"name":"name","type":"string"},
               {"name":"efficiency","type":"number"},{"name":"lfp","type":"boolean"}]},
-              "data":{"values":[[1,2],["Titine",null],[0.145,0.2],[false,true]]}}]}}}
+              "data":{"values":[[1,2],["Model Y",null],[0.145,0.2],[false,true]]}}]}}}
         """.trimIndent()
 
         val table = FrameParser.parse(body)
@@ -23,7 +23,7 @@ class FrameParserTest {
         assertEquals(listOf("id", "name", "efficiency", "lfp"), table.columns)
         assertEquals(2, table.rowCount)
         assertEquals(1L, table.long(0, "id"))
-        assertEquals("Titine", table.string(0, "name"))
+        assertEquals("Model Y", table.string(0, "name"))
         assertNull(table.string(1, "name"))
         assertEquals(0.145, table.double(0, "efficiency")!!, 1e-9)
         assertEquals(true, table.boolean(1, "lfp"))
