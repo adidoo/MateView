@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
@@ -119,7 +120,8 @@ fun ArcGauge(
 ) {
     val track = MaterialTheme.colorScheme.surfaceContainerHighest
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.fillMaxWidth().aspectRatio(1.35f), contentAlignment = Alignment.Center) {
+        // Capped, so that a gauge does not grow to fill a wide (landscape) panel.
+        Box(Modifier.widthIn(max = 150.dp).fillMaxWidth().aspectRatio(1.35f), contentAlignment = Alignment.Center) {
             Canvas(Modifier.matchParentSize()) {
                 val stroke = size.minDimension * 0.11f
                 val diameter = minOf(size.width, size.height * 1.25f) - stroke
