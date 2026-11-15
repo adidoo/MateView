@@ -80,6 +80,7 @@
     <string name="overview_temp_inside">Intérieur</string>
     <string name="overview_temp_outside">Extérieur</string>
     <string name="overview_chart_charge_level">Niveau de charge</string>
+    <string name="overview_chart_energy_per_day">Énergie rechargée par jour</string>
     <string name="overview_chart_charging">Détails de charge</string>
     <string name="overview_series_power">Puissance (kW)</string>
     <string name="overview_series_energy">Énergie ajoutée (kWh)</string>

@@ -46,6 +46,8 @@ data class Overview(
     val chargeLevel: List<Point>,
     val chargingPower: List<Point>,
     val energyAdded: List<Point>,
+    /** Energy added (kWh) by each charge started in the period, at its start time. */
+    val chargeSessions: List<Point>,
     val states: List<StateChange>,
     /** Width of the buckets the chart series were averaged into. */
     val bucketMs: Long,
@@ -124,6 +126,7 @@ class OverviewRepository(private val data: DataAccess) {
             chargeLevel = result["charge_level"].points("time", "soc"),
             chargingPower = details.points("time", "charger_power"),
             energyAdded = details.points("time", "charge_energy_added"),
+            chargeSessions = result["charge_sessions"].points("time", "charge_energy_added"),
             states = result["states"].let { table ->
                 // Code 0 marks the end of a drive, charge or update: the car then goes back to
                 // whatever connectivity state it was last reported in.
@@ -153,7 +156,7 @@ class OverviewRepository(private val data: DataAccess) {
     companion object {
         private val QUERIES = listOf(
             "battery", "charging", "summary", "drives", "consumption_gross",
-            "temperatures", "charge_level", "charging_details", "states",
+            "temperatures", "charge_level", "charging_details", "charge_sessions", "states",
         )
 
         /** Aims at about 300 points per chart, never finer than one minute. */

@@ -7,6 +7,7 @@ import adidoo.mateview.data.repo.CarState
 import adidoo.mateview.data.repo.Overview
 import adidoo.mateview.ui.components.ArcGauge
 import adidoo.mateview.ui.components.ChartSeries
+import adidoo.mateview.ui.components.DailyBarChart
 import adidoo.mateview.ui.components.NO_VALUE
 import adidoo.mateview.ui.components.Panel
 import adidoo.mateview.ui.components.StatTile
@@ -55,6 +56,9 @@ import java.util.Date
 
 private const val TWO_PANE_MIN_WIDTH_DP = 600
 private const val MINUTE_MS = 60_000L
+
+/** Beyond this span a charge is too short to read as a curve: daily bars are shown instead. */
+private const val CURVE_MAX_SPAN_MS = 36 * 60 * MINUTE_MS
 
 private val ColorGood = Color(0xFF34C38F)
 private val ColorWarn = Color(0xFFF2B33D)
@@ -330,7 +334,20 @@ private fun ChartPanels(overview: Overview) {
         }
     }
 
-    Panel(stringResource(R.string.overview_chart_charging)) {
+    if (to - from > CURVE_MAX_SPAN_MS) {
+        Panel(stringResource(R.string.overview_chart_energy_per_day)) {
+            if (overview.chargeSessions.isEmpty()) {
+                NoData()
+            } else {
+                DailyBarChart(
+                    points = overview.chargeSessions,
+                    fromMs = from, toMs = to,
+                    color = ColorEnergy,
+                    formatY = { formatNumber(it) + " kWh" },
+                )
+            }
+        }
+    } else Panel(stringResource(R.string.overview_chart_charging)) {
         if (overview.chargingPower.isEmpty()) {
             NoData()
         } else {

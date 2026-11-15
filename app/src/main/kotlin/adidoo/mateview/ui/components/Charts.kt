@@ -36,14 +36,32 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import java.util.Date
 import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.math.log10
+import kotlin.math.pow
 
 data class ChartSeries(val label: String, val color: Color, val points: List<Point>)
 
 private const val DAY_MS = 24 * 60 * 60 * 1000L
+
+/**
+ * Top of a zero-based axis with three intervals, chosen so the grid lines fall
+ * on round values (steps such as 1, 1.5, 2, 2.5 or 5 times a power of ten).
+ */
+internal fun niceTop(max: Double): Double {
+    if (max <= 0.0) return 3.0
+    val raw = max / 3
+    val magnitude = 10.0.pow(floor(log10(raw)))
+    val step = listOf(1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 10.0).first { it * magnitude >= raw } * magnitude
+    return step * 3
+}
 
 /** Labels of a time axis: hours for short ranges, dates for long ones. */
 private fun timeLabel(timeMs: Long, spanMs: Long): String {
@@ -73,7 +91,8 @@ fun TimeLineChart(
 
     val values = series.flatMap { it.points }.map { it.value }
     val low = yMin ?: floor(values.minOrNull() ?: 0.0)
-    val high = (yMax ?: ceil(values.maxOrNull() ?: 1.0)).let { if (it <= low) low + 1 else it }
+    val high = (yMax ?: if (low == 0.0) niceTop(values.maxOrNull() ?: 0.0) else ceil(values.maxOrNull() ?: 1.0))
+        .let { if (it <= low) low + 1 else it }
     val span = (toMs - fromMs).coerceAtLeast(1)
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -123,6 +142,75 @@ fun TimeLineChart(
             }
         }
         if (series.size > 1) Legend(series.map { it.label to it.color })
+    }
+}
+
+/**
+ * One bar per calendar day (in the phone's time zone) over a time range, each
+ * the sum of the [points] falling on that day. Suited to events that are short
+ * compared with the range, such as charges over a month.
+ */
+@Composable
+fun DailyBarChart(
+    points: List<Point>,
+    fromMs: Long,
+    toMs: Long,
+    color: Color,
+    modifier: Modifier = Modifier,
+    formatY: (Double) -> String = { formatNumber(it) },
+) {
+    val textMeasurer = rememberTextMeasurer()
+    val labelStyle: TextStyle = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val gridColor = MaterialTheme.colorScheme.outlineVariant
+
+    val zone = ZoneId.systemDefault()
+    fun dayOf(timeMs: Long): LocalDate = Instant.ofEpochMilli(timeMs).atZone(zone).toLocalDate()
+    val firstDay = dayOf(fromMs)
+    val dayCount = (ChronoUnit.DAYS.between(firstDay, dayOf(toMs)).toInt() + 1).coerceAtLeast(1)
+    val totals = DoubleArray(dayCount)
+    points.forEach { point ->
+        val index = ChronoUnit.DAYS.between(firstDay, dayOf(point.timeMs)).toInt()
+        if (index in 0 until dayCount) totals[index] += point.value
+    }
+    val high = niceTop(totals.maxOrNull() ?: 0.0)
+
+    Canvas(modifier.fillMaxWidth().height(180.dp)) {
+        val yLabels = (0..3).map { high * it / 3 }
+        val measured = yLabels.map { textMeasurer.measure(formatY(it), labelStyle) }
+        val gutter = measured.maxOf { it.size.width } + 8.dp.toPx()
+        val bottom = size.height - measured.first().size.height - 6.dp.toPx()
+        val top = measured.first().size.height / 2f
+        val slot = (size.width - gutter) / dayCount
+        val barWidth = (slot * 0.7f).coerceAtMost(28.dp.toPx())
+
+        fun y(value: Double) = bottom - (bottom - top) * (value / high).toFloat()
+
+        yLabels.forEachIndexed { index, value ->
+            val lineY = y(value)
+            drawLine(gridColor, Offset(gutter, lineY), Offset(size.width, lineY), strokeWidth = 1f)
+            drawText(measured[index], topLeft = Offset(0f, lineY - measured[index].size.height / 2f))
+        }
+        totals.forEachIndexed { index, total ->
+            if (total <= 0.0) return@forEachIndexed
+            val left = gutter + slot * index + (slot - barWidth) / 2
+            val barTop = y(total)
+            drawRoundRect(
+                color,
+                topLeft = Offset(left, barTop),
+                size = Size(barWidth, bottom - barTop),
+                cornerRadius = CornerRadius(2.dp.toPx()),
+            )
+        }
+        // Date labels under four evenly spread days, centred on their bar.
+        val formatter = SimpleDateFormat("d MMM", Locale.getDefault())
+        val labelled = (0..3).map { it * (dayCount - 1) / 3 }.distinct()
+        labelled.forEach { index ->
+            val dayStart = firstDay.plusDays(index.toLong()).atStartOfDay(zone).toInstant().toEpochMilli()
+            val label = textMeasurer.measure(formatter.format(Date(dayStart)), labelStyle)
+            val center = gutter + slot * index + slot / 2
+            val labelX = (center - label.size.width / 2f).coerceIn(gutter, size.width - label.size.width)
+            drawText(label, topLeft = Offset(labelX, bottom + 6.dp.toPx()))
+        }
     }
 }
 
