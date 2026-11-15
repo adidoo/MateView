@@ -61,21 +61,29 @@ class OverviewViewModel(private val container: AppContainer) : ViewModel() {
         load()
     }
 
-    fun refresh() = load()
+    fun refresh() = load(quiet = false)
 
-    private fun load() {
+    /** Periodic refresh while the screen is shown: no spinner, and a failure keeps what is displayed. */
+    fun refreshQuietly() {
+        if (loadJob?.isActive == true) return
+        load(quiet = true)
+    }
+
+    private fun load(quiet: Boolean = false) {
         val id = carId ?: return
         val period = _state.value.period
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
-            _state.update { it.copy(loading = true, error = null) }
+            if (!quiet) _state.update { it.copy(loading = true, error = null) }
             try {
                 val overview = container.overview.load(id, period.durationMs)
-                _state.update { it.copy(loading = false, overview = overview) }
+                _state.update { it.copy(loading = false, overview = overview, error = null) }
             } catch (e: NotConnectedException) {
                 _state.update { it.copy(loading = false, connected = false) }
             } catch (e: IOException) {
-                _state.update { it.copy(loading = false, error = e.message ?: e.javaClass.simpleName) }
+                if (!quiet || _state.value.overview == null) {
+                    _state.update { it.copy(loading = false, error = e.message ?: e.javaClass.simpleName) }
+                }
             }
         }
     }

@@ -38,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,7 +49,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.delay
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -56,6 +61,10 @@ import java.util.Date
 
 private const val TWO_PANE_MIN_WIDTH_DP = 600
 private const val MINUTE_MS = 60_000L
+
+/** How often the screen refreshes by itself: faster while something is happening. */
+private const val REFRESH_ACTIVE_MS = 30_000L
+private const val REFRESH_IDLE_MS = 2 * MINUTE_MS
 
 /** Beyond this span a charge is too short to read as a curve: daily bars are shown instead. */
 private const val CURVE_MAX_SPAN_MS = 36 * 60 * MINUTE_MS
@@ -102,6 +111,18 @@ fun OverviewScreen(onOpenSettings: () -> Unit) {
         null -> return
         false -> return NotConnected(onOpenSettings)
         true -> Unit
+    }
+
+    // Follow a charge or a drive as it happens, only while the screen is in front.
+    val active = state.overview?.state.let { it == CarState.CHARGING || it == CarState.DRIVING || it == CarState.UPDATING }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(active, lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                delay(if (active) REFRESH_ACTIVE_MS else REFRESH_IDLE_MS)
+                viewModel.refreshQuietly()
+            }
+        }
     }
 
     PullToRefreshBox(
