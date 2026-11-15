@@ -4,6 +4,7 @@ package adidoo.mateview.ui
 import adidoo.mateview.MateViewApplication
 import adidoo.mateview.R
 import adidoo.mateview.data.settings.ConnectionSettings
+import adidoo.mateview.ui.screens.overview.OverviewScreen
 import adidoo.mateview.ui.settings.SettingsScreen
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
@@ -77,6 +78,7 @@ fun MateViewApp() {
         },
     ) {
         when (current) {
+            TopDestination.Home -> OverviewScreen(onOpenSettings = { current = TopDestination.Settings })
             TopDestination.Settings -> SettingsScreen()
             else -> PlaceholderScreen(
                 title = stringResource(current.label),

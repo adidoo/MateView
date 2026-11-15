@@ -102,6 +102,9 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
                 grafanaUrl = form.grafanaUrl,
                 grafanaToken = form.grafanaToken.ifBlank { null },
             )
+            // The open session and the cached answers belong to the previous connection.
+            container.dataAccess.invalidate()
+            container.queryCache.clear()
             val saved = settings.connection.first()
             val connection = if (isHa) {
                 ResolvedConnection.HomeAssistant(url, settings.haToken().orEmpty(), saved.haPanel)

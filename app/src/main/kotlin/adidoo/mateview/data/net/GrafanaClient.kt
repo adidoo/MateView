@@ -42,6 +42,34 @@ class GrafanaClient(private val transport: Transport) {
     }
 
     /**
+     * Runs several queries (name to SQL) in one request and returns the raw answer,
+     * to be read with [FrameParser.parse] using each name as `refId`. A failing
+     * query does not prevent the others from being answered.
+     */
+    suspend fun queryBatch(datasource: Datasource, queries: Map<String, String>, fromMs: Long?, toMs: Long?): String {
+        val body = buildJsonObject {
+            put("queries", buildJsonArray {
+                for ((name, sql) in queries) {
+                    add(buildJsonObject {
+                        put("refId", name)
+                        putJsonObject("datasource") { put("uid", datasource.uid) }
+                        put("rawSql", sql)
+                        put("format", "table")
+                    })
+                }
+            })
+            if (fromMs != null) put("from", fromMs.toString())
+            if (toMs != null) put("to", toMs.toString())
+        }
+        val response = transport.execute(ApiRequest("POST", "/api/ds/query", body.toString()))
+        // Grafana answers 400 when one query fails, but still returns every result.
+        if (response.body.parseObject()?.containsKey("results") != true) {
+            throw TransportException(Stage.DATABASE, "Grafana refused the queries (HTTP ${response.code}).")
+        }
+        return response.body
+    }
+
+    /**
      * Runs [sql] on [datasource]. [fromMs] and [toMs] feed Grafana's time macros
      * (`$__timeFilter`, `$__timeFrom`...), which the server expands.
      */

@@ -9,6 +9,8 @@ import adidoo.mateview.data.ConnectionTester
 import adidoo.mateview.data.StepStatus
 import adidoo.mateview.data.net.Stage
 import adidoo.mateview.data.settings.ConnectionMode
+import adidoo.mateview.ui.AppLanguage
+import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -69,6 +71,7 @@ fun SettingsScreen() {
     val form: @Composable () -> Unit = { ConnectionForm(state, viewModel) }
     val results: @Composable () -> Unit = {
         TestResults(state, viewModel)
+        LanguageChoice()
         About()
     }
 
@@ -305,6 +308,29 @@ private fun Warning(text: String) {
         Icon(Icons.Outlined.WarningAmber, null, tint = MaterialTheme.colorScheme.tertiary)
         Spacer(Modifier.width(12.dp))
         Text(text, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+/** System language by default, or a forced one. Changing it recreates the activity. */
+@Composable
+private fun LanguageChoice() {
+    val activity = LocalContext.current as? Activity ?: return
+    val current = AppLanguage.current(activity)
+    val choices = listOf(
+        AppLanguage.SYSTEM to stringResource(R.string.settings_language_system),
+        "en" to "English",
+        "fr" to "Français",
+    )
+    Spacer(Modifier.height(12.dp))
+    Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.titleLarge)
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        choices.forEachIndexed { index, (tag, label) ->
+            SegmentedButton(
+                selected = current == tag,
+                onClick = { if (current != tag) AppLanguage.set(activity, tag) },
+                shape = SegmentedButtonDefaults.itemShape(index, choices.size),
+            ) { Text(label) }
+        }
     }
 }
 

@@ -46,4 +46,42 @@
     <string name="settings_about">À propos</string>
     <string name="about_version">MateView %1$s</string>
     <string name="about_license">Logiciel libre sous licence GNU Affero General Public License, version 3 ou ultérieure, sans garantie.</string>
+    <string name="settings_language">Langue</string>
+    <string name="settings_language_system">Système</string>
+
+    <string name="retry">Réessayer</string>
+    <string name="no_data_for_period">Aucune donnée sur cette période.</string>
+    <string name="period_24h">24 h</string>
+    <string name="period_7d">7 jours</string>
+    <string name="period_30d">30 jours</string>
+
+    <string name="state_driving">En conduite</string>
+    <string name="state_charging">En charge</string>
+    <string name="state_updating">Mise à jour</string>
+    <string name="state_online">En ligne</string>
+    <string name="state_asleep">En veille</string>
+    <string name="state_offline">Hors ligne</string>
+    <string name="state_unknown">Inconnu</string>
+
+    <string name="overview_from_cache">Serveur injoignable. Données du %1$s.</string>
+    <string name="overview_error">Impossible de charger les données</string>
+    <string name="overview_battery_level">Batterie</string>
+    <string name="overview_charging_power">Charge</string>
+    <string name="overview_ac_voltage">Tension AC</string>
+    <string name="overview_range">Autonomie</string>
+    <string name="overview_odometer">Kilométrage</string>
+    <string name="overview_consumption_net">Conso. moy. (nette)</string>
+    <string name="overview_consumption_gross">Conso. moy. (brute)</string>
+    <string name="overview_distance">Distance enregistrée</string>
+    <string name="overview_firmware">Logiciel</string>
+    <string name="overview_temperatures">Températures</string>
+    <string name="overview_no_recent_temperature">Aucune mesure depuis une heure.</string>
+    <string name="overview_temp_driver">Consigne</string>
+    <string name="overview_temp_inside">Intérieur</string>
+    <string name="overview_temp_outside">Extérieur</string>
+    <string name="overview_chart_charge_level">Niveau de charge</string>
+    <string name="overview_chart_charging">Détails de charge</string>
+    <string name="overview_series_power">Puissance (kW)</string>
+    <string name="overview_series_energy">Énergie ajoutée (kWh)</string>
+    <string name="overview_chart_states">États</string>
 </resources>

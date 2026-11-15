@@ -49,4 +49,42 @@
     <string name="about_license">Free software under the GNU Affero General Public License, version 3 or later, with no warranty.</string>
     <string name="about_disclaimer" translatable="false">This project is an unofficial community tool and is not affiliated with, endorsed by, or supported by the official TeslaMate project.</string>
     <string name="about_source" translatable="false">https://github.com/adidoo/MateView</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_system">System</string>
+
+    <string name="retry">Retry</string>
+    <string name="no_data_for_period">No data for this period.</string>
+    <string name="period_24h">24 h</string>
+    <string name="period_7d">7 days</string>
+    <string name="period_30d">30 days</string>
+
+    <string name="state_driving">Driving</string>
+    <string name="state_charging">Charging</string>
+    <string name="state_updating">Updating</string>
+    <string name="state_online">Online</string>
+    <string name="state_asleep">Asleep</string>
+    <string name="state_offline">Offline</string>
+    <string name="state_unknown">Unknown</string>
+
+    <string name="overview_from_cache">Server unreachable. Data from %1$s.</string>
+    <string name="overview_error">Could not load the data</string>
+    <string name="overview_battery_level">Battery</string>
+    <string name="overview_charging_power">Charging</string>
+    <string name="overview_ac_voltage">AC voltage</string>
+    <string name="overview_range">Range</string>
+    <string name="overview_odometer">Odometer</string>
+    <string name="overview_consumption_net">Ø consumption (net)</string>
+    <string name="overview_consumption_gross">Ø consumption (gross)</string>
+    <string name="overview_distance">Distance logged</string>
+    <string name="overview_firmware">Firmware</string>
+    <string name="overview_temperatures">Temperatures</string>
+    <string name="overview_no_recent_temperature">No reading in the last hour.</string>
+    <string name="overview_temp_driver">Driver setpoint</string>
+    <string name="overview_temp_inside">Inside</string>
+    <string name="overview_temp_outside">Outside</string>
+    <string name="overview_chart_charge_level">Charge level</string>
+    <string name="overview_chart_charging">Charging details</string>
+    <string name="overview_series_power">Power (kW)</string>
+    <string name="overview_series_energy">Energy added (kWh)</string>
+    <string name="overview_chart_states">States</string>
 </resources>
