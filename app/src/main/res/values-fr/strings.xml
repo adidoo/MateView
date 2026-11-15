@@ -85,4 +85,6 @@
     <string name="overview_series_power">Puissance (kW)</string>
     <string name="overview_series_energy">Énergie ajoutée (kWh)</string>
     <string name="overview_chart_states">États</string>
+    <string name="chart_reset_zoom">Réinitialiser le zoom</string>
+    <string name="unit_day_short">j</string>
 </resources>

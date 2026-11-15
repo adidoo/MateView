@@ -88,4 +88,6 @@
     <string name="overview_series_power">Power (kW)</string>
     <string name="overview_series_energy">Energy added (kWh)</string>
     <string name="overview_chart_states">States</string>
+    <string name="chart_reset_zoom">Reset zoom</string>
+    <string name="unit_day_short">d</string>
 </resources>

@@ -326,9 +326,10 @@ private fun ChartPanels(overview: Overview) {
             NoData()
         } else {
             TimeLineChart(
-                series = listOf(ChartSeries("%", ColorGood, overview.chargeLevel)),
+                series = listOf(ChartSeries(stringResource(R.string.overview_battery_level), ColorGood, overview.chargeLevel)),
                 fromMs = from, toMs = to, yMin = 0.0, yMax = 100.0,
                 formatY = { formatNumber(it) + " %" },
+                formatValue = { formatNumber(it) + " %" },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -344,6 +345,7 @@ private fun ChartPanels(overview: Overview) {
                     fromMs = from, toMs = to,
                     color = ColorEnergy,
                     formatY = { formatNumber(it) + " kWh" },
+                    formatValue = { formatNumber(it, 1) + " kWh" },
                 )
             }
         }
