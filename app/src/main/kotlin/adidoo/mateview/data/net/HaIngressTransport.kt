@@ -59,6 +59,7 @@ class HaIngressTransport(
             throw TransportException(
                 Stage.GRAFANA,
                 "The Home Assistant ingress proxy refused the request (HTTP ${response.code}).",
+                problem = Problem.PROXY_REFUSED, detail = response.code.toString(),
             )
         }
         return response
@@ -91,14 +92,16 @@ class HaIngressTransport(
             // 1. Authentication.
             val hello = socket.receive(Stage.REACH_HA)
             if (hello.type != "auth_required" && hello.type != "auth_ok") {
-                throw TransportException(Stage.REACH_HA, "This address does not answer like Home Assistant.")
+                throw TransportException(Stage.REACH_HA, "This address does not answer like Home Assistant.",
+                    problem = Problem.NOT_HOME_ASSISTANT)
             }
             onStage(Stage.REACH_HA)
             if (hello.type == "auth_required") {
                 socket.send(buildJsonObject { put("type", "auth"); put("access_token", token) })
                 val auth = socket.receive(Stage.AUTH_HA)
                 if (auth.type != "auth_ok") {
-                    throw TransportException(Stage.AUTH_HA, "Home Assistant rejected the access token.")
+                    throw TransportException(Stage.AUTH_HA, "Home Assistant rejected the access token.",
+                        problem = Problem.TOKEN_REJECTED)
                 }
             }
             onStage(Stage.AUTH_HA)
@@ -114,7 +117,10 @@ class HaIngressTransport(
                 } else {
                     "Ingress panels visible to this user: ${available.joinToString()}."
                 }
-                throw TransportException(Stage.FIND_PANEL, "Panel \"$panel\" not found. $hint")
+                throw TransportException(
+                    Stage.FIND_PANEL, "Panel \"$panel\" not found. $hint",
+                    problem = Problem.PANEL_NOT_FOUND, detail = available.joinToString(),
+                )
             }
             val cookieName = config["field"]?.jsonPrimitive?.contentOrNull ?: DEFAULT_COOKIE_NAME
             onStage(Stage.FIND_PANEL)
@@ -122,7 +128,7 @@ class HaIngressTransport(
             // 3. User session.
             val session = socket.call(2, "ha-ingress/session", Stage.OPEN_SESSION)["session"]
                 ?.jsonPrimitive?.contentOrNull
-                ?: throw TransportException(Stage.OPEN_SESSION, "hass_ingress did not return a session.")
+                ?: throw TransportException(Stage.OPEN_SESSION, "hass_ingress did not return a session.", problem = Problem.NO_SESSION)
             onStage(Stage.OPEN_SESSION)
 
             cookies = "$cookieName=$panelToken; $SESSION_COOKIE_NAME=$session"
@@ -181,7 +187,7 @@ private class HaSocket private constructor(private val incoming: Channel<String>
             withTimeoutOrNull(TIMEOUT_MS) { incoming.receiveCatching() }
         } catch (e: IOException) {
             throw TransportException(stage, e.message ?: "Connection failed.", e)
-        } ?: throw TransportException(stage, "No answer from Home Assistant.")
+        } ?: throw TransportException(stage, "No answer from Home Assistant.", problem = Problem.NO_ANSWER)
         val value = text.getOrNull() ?: throw TransportException(
             stage,
             text.exceptionOrNull()?.message ?: "Home Assistant closed the connection.",

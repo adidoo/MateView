@@ -132,4 +132,15 @@
     <string name="chart_ac_voltage">Tension AC</string>
     <string name="chart_ac_current">Courant AC</string>
     <string name="chart_charging_curve">Courbe de charge</string>
+    <string name="problem_not_home_assistant">Cette adresse ne répond pas comme Home Assistant.</string>
+    <string name="problem_token_rejected">Home Assistant a refusé le jeton d\'accès.</string>
+    <string name="problem_panel_not_found">Panneau introuvable. Panneaux ingress visibles par cet utilisateur : %1$s.</string>
+    <string name="problem_panel_not_found_none">Panneau introuvable. Aucun panneau ingress n\'est visible par cet utilisateur Home Assistant : il faut peut-être un compte administrateur.</string>
+    <string name="problem_no_session">hass_ingress n\'a pas renvoyé de session.</string>
+    <string name="problem_no_answer">Pas de réponse de Home Assistant.</string>
+    <string name="problem_proxy_refused">Le relais ingress de Home Assistant a refusé la requête (HTTP %1$s).</string>
+    <string name="problem_no_grafana">Pas de Grafana à cette adresse (HTTP %1$s).</string>
+    <string name="problem_datasources_refused">Grafana a refusé de lister ses sources de données (HTTP %1$s). Vérifiez le jeton, ou autorisez les visiteurs anonymes.</string>
+    <string name="problem_no_postgres">Grafana n\'a aucune source de données PostgreSQL.</string>
+    <string name="problem_queries_refused">Grafana a refusé les requêtes (HTTP %1$s).</string>
 </resources>

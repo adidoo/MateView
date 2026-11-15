@@ -20,7 +20,8 @@ class GrafanaClient(private val transport: Transport) {
         val response = transport.execute(ApiRequest("GET", "/api/health"))
         val json = response.takeIf { it.isSuccessful }?.body?.parseObject()
         return json?.text("version")
-            ?: throw TransportException(Stage.GRAFANA, "No Grafana at this address (HTTP ${response.code}).")
+            ?: throw TransportException(Stage.GRAFANA, "No Grafana at this address (HTTP ${response.code}).",
+                problem = Problem.NO_GRAFANA, detail = response.code.toString())
     }
 
     /** The PostgreSQL data source to query: the one named "TeslaMate" when there are several. */
@@ -30,6 +31,7 @@ class GrafanaClient(private val transport: Transport) {
             ?: throw TransportException(
                 Stage.DATASOURCE,
                 "Grafana refused to list its data sources (HTTP ${response.code}). Check the token or allow anonymous viewers.",
+                problem = Problem.DATASOURCES_REFUSED, detail = response.code.toString(),
             )
         val candidates = sources.mapNotNull { (name, value) ->
             val source = value as? JsonObject ?: return@mapNotNull null
@@ -38,7 +40,7 @@ class GrafanaClient(private val transport: Transport) {
         }
         return candidates.firstOrNull { it.name.equals("TeslaMate", ignoreCase = true) }
             ?: candidates.firstOrNull()
-            ?: throw TransportException(Stage.DATASOURCE, "Grafana has no PostgreSQL data source.")
+            ?: throw TransportException(Stage.DATASOURCE, "Grafana has no PostgreSQL data source.", problem = Problem.NO_POSTGRES)
     }
 
     /**
@@ -64,7 +66,8 @@ class GrafanaClient(private val transport: Transport) {
         val response = transport.execute(ApiRequest("POST", "/api/ds/query", body.toString()))
         // Grafana answers 400 when one query fails, but still returns every result.
         if (response.body.parseObject()?.containsKey("results") != true) {
-            throw TransportException(Stage.DATABASE, "Grafana refused the queries (HTTP ${response.code}).")
+            throw TransportException(Stage.DATABASE, "Grafana refused the queries (HTTP ${response.code}).",
+                problem = Problem.QUERIES_REFUSED, detail = response.code.toString())
         }
         return response.body
     }

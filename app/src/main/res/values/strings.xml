@@ -135,4 +135,15 @@
     <string name="chart_ac_voltage">AC voltage</string>
     <string name="chart_ac_current">AC current</string>
     <string name="chart_charging_curve">Charging curve</string>
+    <string name="problem_not_home_assistant">This address does not answer like Home Assistant.</string>
+    <string name="problem_token_rejected">Home Assistant rejected the access token.</string>
+    <string name="problem_panel_not_found">Panel not found. Ingress panels visible to this user: %1$s.</string>
+    <string name="problem_panel_not_found_none">Panel not found. No ingress panel is visible to this Home Assistant user: it may need an administrator account.</string>
+    <string name="problem_no_session">hass_ingress did not return a session.</string>
+    <string name="problem_no_answer">No answer from Home Assistant.</string>
+    <string name="problem_proxy_refused">The Home Assistant ingress proxy refused the request (HTTP %1$s).</string>
+    <string name="problem_no_grafana">No Grafana at this address (HTTP %1$s).</string>
+    <string name="problem_datasources_refused">Grafana refused to list its data sources (HTTP %1$s). Check the token, or allow anonymous viewers.</string>
+    <string name="problem_no_postgres">Grafana has no PostgreSQL data source.</string>
+    <string name="problem_queries_refused">Grafana refused the queries (HTTP %1$s).</string>
 </resources>

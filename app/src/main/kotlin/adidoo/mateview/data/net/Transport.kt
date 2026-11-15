@@ -24,8 +24,23 @@ interface Transport {
 /** Where a connection attempt failed, so the settings screen can point at the right step. */
 enum class Stage { REACH_HA, AUTH_HA, FIND_PANEL, OPEN_SESSION, GRAFANA, DATASOURCE, DATABASE }
 
-class TransportException(val stage: Stage, message: String, cause: Throwable? = null) :
-    IOException(message, cause)
+/**
+ * The failures the app can explain in the user's language. [TransportException.message]
+ * stays in English for logs; the interface uses the problem and its detail when present.
+ */
+enum class Problem {
+    NOT_HOME_ASSISTANT, TOKEN_REJECTED, PANEL_NOT_FOUND, NO_SESSION, NO_ANSWER,
+    PROXY_REFUSED, NO_GRAFANA, DATASOURCES_REFUSED, NO_POSTGRES, QUERIES_REFUSED,
+}
+
+class TransportException(
+    val stage: Stage,
+    message: String,
+    cause: Throwable? = null,
+    val problem: Problem? = null,
+    /** What completes the explanation of [problem]: an HTTP status, a list of names... */
+    val detail: String = "",
+) : IOException(message, cause)
 
 /** Runs the call without blocking a thread and reads the whole body. */
 internal suspend fun Call.await(): ApiResponse = suspendCancellableCoroutine { continuation ->

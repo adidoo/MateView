@@ -7,6 +7,7 @@ import adidoo.mateview.R
 import adidoo.mateview.data.ConnectionReport
 import adidoo.mateview.data.ConnectionTester
 import adidoo.mateview.data.StepStatus
+import adidoo.mateview.data.net.Problem
 import adidoo.mateview.data.net.Stage
 import adidoo.mateview.data.settings.ConnectionMode
 import adidoo.mateview.ui.AppLanguage
@@ -261,7 +262,7 @@ private fun StepRow(step: StepUi) {
             Text(label, style = MaterialTheme.typography.bodyLarge)
             val detail = when (val status = step.status) {
                 is StepStatus.Done -> status.detail
-                is StepStatus.Failed -> status.message
+                is StepStatus.Failed -> failureText(status)
                 else -> null
             }
             if (detail != null) {
@@ -277,6 +278,24 @@ private fun StepRow(step: StepUi) {
             }
         }
     }
+}
+
+/** The failure in the user's language when it is a known one, otherwise the raw message. */
+@Composable
+private fun failureText(failure: StepStatus.Failed): String = when (failure.problem) {
+    Problem.NOT_HOME_ASSISTANT -> stringResource(R.string.problem_not_home_assistant)
+    Problem.TOKEN_REJECTED -> stringResource(R.string.problem_token_rejected)
+    Problem.PANEL_NOT_FOUND ->
+        if (failure.detail.isEmpty()) stringResource(R.string.problem_panel_not_found_none)
+        else stringResource(R.string.problem_panel_not_found, failure.detail)
+    Problem.NO_SESSION -> stringResource(R.string.problem_no_session)
+    Problem.NO_ANSWER -> stringResource(R.string.problem_no_answer)
+    Problem.PROXY_REFUSED -> stringResource(R.string.problem_proxy_refused, failure.detail)
+    Problem.NO_GRAFANA -> stringResource(R.string.problem_no_grafana, failure.detail)
+    Problem.DATASOURCES_REFUSED -> stringResource(R.string.problem_datasources_refused, failure.detail)
+    Problem.NO_POSTGRES -> stringResource(R.string.problem_no_postgres)
+    Problem.QUERIES_REFUSED -> stringResource(R.string.problem_queries_refused, failure.detail)
+    null -> failure.message
 }
 
 /** Summary of a successful test, with the warnings the user should act on. */

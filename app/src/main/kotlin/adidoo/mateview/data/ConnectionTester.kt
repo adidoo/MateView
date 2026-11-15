@@ -6,6 +6,7 @@ import adidoo.mateview.data.net.DirectTransport
 import adidoo.mateview.data.net.GrafanaClient
 import adidoo.mateview.data.net.GrafanaQueryException
 import adidoo.mateview.data.net.HaIngressTransport
+import adidoo.mateview.data.net.Problem
 import adidoo.mateview.data.net.Stage
 import adidoo.mateview.data.net.Transport
 import adidoo.mateview.data.net.TransportException
@@ -42,7 +43,8 @@ sealed interface StepStatus {
     data object Pending : StepStatus
     data object Running : StepStatus
     data class Done(val detail: String? = null) : StepStatus
-    data class Failed(val message: String) : StepStatus
+    /** [problem] and [detail] let the interface explain the failure in the user's language. */
+    data class Failed(val message: String, val problem: Problem? = null, val detail: String = "") : StepStatus
 }
 
 /** Walks through a connection stage by stage, so a failure names the stage that broke. */
@@ -106,7 +108,7 @@ class ConnectionTester(private val client: OkHttpClient) {
             onProgress(Stage.DATABASE, StepStatus.Done())
             return report
         } catch (e: TransportException) {
-            onProgress(e.stage.takeIf { it in stages } ?: current, StepStatus.Failed(e.message.orEmpty()))
+            onProgress(e.stage.takeIf { it in stages } ?: current, StepStatus.Failed(e.message.orEmpty(), e.problem, e.detail))
         } catch (e: GrafanaQueryException) {
             onProgress(current, StepStatus.Failed(e.message.orEmpty()))
         } catch (e: IOException) {
