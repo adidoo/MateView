@@ -8,6 +8,29 @@ import adidoo.mateview.data.repo.DriveDetail
 import adidoo.mateview.data.repo.DriveList
 import adidoo.mateview.data.repo.DriveSummary
 import adidoo.mateview.data.repo.ListPeriod
+import adidoo.mateview.data.UnitSettings
+import adidoo.mateview.ui.components.formatTime
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.DeviceThermostat
+import androidx.compose.material3.Icon
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import adidoo.mateview.ui.components.AdaptiveTiles
 import adidoo.mateview.ui.components.CategoryBarChart
 import adidoo.mateview.ui.components.ChartSeries
@@ -68,6 +91,8 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 private val ColorSpeed = Color(0xFF4C8DF6)
 private val ColorPower = Color(0xFFF2B33D)
 private val ColorBattery = Color(0xFF34C38F)
+private val ColorEfficient = Color(0xFF34C38F)
+private val ColorThirsty = Color(0xFFF2B33D)
 private val ColorRange = Color(0xFF7C6FD6)
 private val ColorElevation = Color(0xFF9C7B5B)
 private val ColorOutside = Color(0xFF4C8DF6)
@@ -120,8 +145,17 @@ fun DrivesScreen(onOpenSettings: () -> Unit) {
                     if (state.data != null && drives.isEmpty()) {
                         item { Text(stringResource(R.string.drives_none), color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     }
-                    items(drives, key = { it.id }) { drive ->
-                        DriveCard(drive, state.data!!, selected = drive.id == state.selectedId) { viewModel.select(drive.id) }
+                    val units = state.data?.units
+                    if (units != null) {
+                        val average = averageConsumption(drives)
+                        drives.groupBy { dayOf(it.startMs) }.forEach { (day, ofDay) ->
+                            item(key = "day-$day") { DayHeader(day, ofDay, units) }
+                            items(ofDay, key = { it.id }) { drive ->
+                                DriveCard(drive, units, average, selected = drive.id == state.selectedId) {
+                                    viewModel.select(drive.id)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -160,9 +194,38 @@ private fun DrivesSummary(drives: List<DriveSummary>, data: DriveList) {
     )
 }
 
+private fun dayOf(timeMs: Long): LocalDate = Instant.ofEpochMilli(timeMs).atZone(ZoneId.systemDefault()).toLocalDate()
+
+/** Net consumption over all the listed drives, in Wh per distance unit; null without distance. */
+private fun averageConsumption(drives: List<DriveSummary>): Double? {
+    val distance = drives.sumOf { it.distance ?: 0.0 }
+    return if (distance > 0) drives.sumOf { it.energy ?: 0.0 } * 1000 / distance else null
+}
+
+/** "Samedi 14 novembre" on the left, the day's total on the right. */
 @Composable
-private fun DriveCard(drive: DriveSummary, data: DriveList, selected: Boolean, onClick: () -> Unit) {
-    val length = data.units.length
+private fun DayHeader(day: LocalDate, drives: List<DriveSummary>, units: UnitSettings) {
+    val label = day.format(DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.getDefault()))
+        .replaceFirstChar { it.titlecase(Locale.getDefault()) }
+    Row(Modifier.fillMaxWidth().padding(top = 8.dp, start = 4.dp, end = 4.dp), verticalAlignment = Alignment.Bottom) {
+        Text(label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+        Text(
+            formatNumber(drives.sumOf { it.distance ?: 0.0 }) + " " + units.length,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/**
+ * A drive drawn as a small route: departure on top, arrival below, joined by a
+ * line; distance and duration on the right; consumption, temperature and the
+ * battery used underneath.
+ */
+@Composable
+private fun DriveCard(drive: DriveSummary, units: UnitSettings, average: Double?, selected: Boolean, onClick: () -> Unit) {
+    val routeColor = MaterialTheme.colorScheme.primary
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
     ElevatedCard(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -170,27 +233,90 @@ private fun DriveCard(drive: DriveSummary, data: DriveList, selected: Boolean, o
             containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer,
         ),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(formatDayTime(drive.startMs), style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
-                Text(formatNumber(drive.distance, 1) + " " + length, style = MaterialTheme.typography.titleMedium)
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Times, aligned with their place.
+                Column(Modifier.fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
+                    Text(formatTime(drive.startMs), style = MaterialTheme.typography.labelLarge, color = muted)
+                    Text(drive.endMs?.let { formatTime(it) } ?: "…", style = MaterialTheme.typography.labelLarge, color = muted)
+                }
+                // The route: a ring, a line, a dot.
+                Canvas(Modifier.width(12.dp).fillMaxHeight()) {
+                    val radius = 5.dp.toPx()
+                    val x = size.width / 2
+                    val top = 9.dp.toPx()
+                    val bottom = size.height - 9.dp.toPx()
+                    drawLine(routeColor.copy(alpha = 0.5f), Offset(x, top + radius), Offset(x, bottom - radius), strokeWidth = 2.dp.toPx())
+                    drawCircle(routeColor, radius - 1.dp.toPx(), Offset(x, top), style = Stroke(2.dp.toPx()))
+                    drawCircle(routeColor, radius, Offset(x, bottom))
+                }
+                Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        drive.startAddress ?: NO_VALUE,
+                        style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        drive.endAddress ?: stringResource(R.string.in_progress),
+                        style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Column(Modifier.fillMaxHeight(), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.SpaceBetween) {
+                    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(
+                            formatNumber(drive.distance, 1),
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                        )
+                        Text(units.length, style = MaterialTheme.typography.bodyMedium, color = muted, modifier = Modifier.padding(bottom = 2.dp))
+                    }
+                    Text(formatMinutes(drive.durationMin), style = MaterialTheme.typography.labelLarge, color = muted)
+                }
             }
-            Text(
-                "${drive.startAddress ?: NO_VALUE} → ${drive.endAddress ?: stringResource(R.string.in_progress)}",
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                listOf(
-                    formatMinutes(drive.durationMin),
-                    formatNumber(drive.consumption) + " Wh/$length",
-                    formatSocRange(drive.startSoc, drive.endSoc),
-                ).joinToString("  ·  "),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                // Greener than the period's average, or thirstier.
+                val consumption = drive.consumption
+                val tint = when {
+                    consumption == null || average == null -> muted
+                    consumption <= average * 0.9 -> ColorEfficient
+                    consumption >= average * 1.15 -> ColorThirsty
+                    else -> muted
+                }
+                Metric(Icons.Outlined.Bolt, formatNumber(consumption) + " Wh/" + units.length, tint)
+                if (drive.outsideTemp != null) {
+                    Metric(Icons.Outlined.DeviceThermostat, formatNumber(drive.outsideTemp) + " °" + units.temperature, muted)
+                }
+                Box(Modifier.weight(1f))
+                SocUsed(drive.startSoc, drive.endSoc)
+            }
         }
+    }
+}
+
+@Composable
+private fun Metric(icon: ImageVector, text: String, tint: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = tint)
+    }
+}
+
+/** A small battery bar: what is left in full colour, what the drive used in a lighter tone. */
+@Composable
+private fun SocUsed(start: Double?, end: Double?) {
+    if (start == null || end == null) return
+    val track = MaterialTheme.colorScheme.surfaceContainerHighest
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Canvas(Modifier.width(56.dp).height(8.dp)) {
+            val corner = CornerRadius(size.height / 2)
+            drawRoundRect(track, cornerRadius = corner)
+            drawRoundRect(ColorBattery.copy(alpha = 0.4f), size = Size(size.width * (start / 100).toFloat(), size.height), cornerRadius = corner)
+            drawRoundRect(ColorBattery, size = Size(size.width * (end / 100).toFloat(), size.height), cornerRadius = corner)
+        }
+        Text(
+            "${formatNumber(start)} → ${formatNumber(end)} %",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

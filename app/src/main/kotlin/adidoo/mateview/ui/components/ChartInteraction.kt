@@ -89,6 +89,7 @@ private const val DOUBLE_TAP_MS = 300L
  * Chart gestures that coexist with a vertically scrolling page:
  *  - tap, or slide a finger horizontally: read the values under the finger;
  *  - pinch with two fingers: zoom and pan the time axis;
+ *  - once zoomed in, slide one finger horizontally: pan (a tap still reads a value);
  *  - double tap: back to the whole range.
  * A vertical slide is left to the page, which scrolls as usual.
  */
@@ -135,7 +136,12 @@ fun Modifier.chartGestures(viewport: ChartViewport): Modifier = pointerInput(vie
             }
             if (scrubbing) {
                 moved = true
-                viewport.cursorTime = viewport.timeAt(change.position.x)
+                if (viewport.zoomed) {
+                    // Zoomed in: one finger moves the view; a tap still reads a value.
+                    viewport.transform(1f, change.positionChange().x, change.position.x)
+                } else {
+                    viewport.cursorTime = viewport.timeAt(change.position.x)
+                }
                 change.consume()
             }
         }
