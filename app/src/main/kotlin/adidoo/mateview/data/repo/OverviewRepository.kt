@@ -4,7 +4,6 @@ package adidoo.mateview.data.repo
 import adidoo.mateview.data.DataAccess
 import adidoo.mateview.data.TimeRange
 import adidoo.mateview.data.UnitSettings
-import adidoo.mateview.data.net.Table
 
 /** A value at a point in time (epoch milliseconds). */
 data class Point(val timeMs: Long, val value: Double)
@@ -161,20 +160,5 @@ class OverviewRepository(private val data: DataAccess) {
 
         /** Aims at about 300 points per chart, never finer than one minute. */
         fun bucketSeconds(periodMs: Long): Long = (periodMs / 1000 / 300).coerceAtLeast(60)
-    }
-}
-
-private fun Table.has(column: String) = rowCount > 0 && column in columns
-private fun Table.firstDouble(column: String): Double? = if (has(column)) double(0, column) else null
-private fun Table.firstLong(column: String): Long? = if (has(column)) long(0, column) else null
-private fun Table.firstString(column: String): String? = if (has(column)) string(0, column) else null
-private fun Table.firstBoolean(column: String): Boolean? = if (has(column)) boolean(0, column) else null
-
-private fun Table.points(timeColumn: String, valueColumn: String): List<Point> {
-    if (timeColumn !in columns || valueColumn !in columns) return emptyList()
-    return (0 until rowCount).mapNotNull { row ->
-        val time = long(row, timeColumn) ?: return@mapNotNull null
-        val value = double(row, valueColumn) ?: return@mapNotNull null
-        Point(time, value)
     }
 }

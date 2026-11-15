@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +24,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import java.util.Locale
 
 /** Placeholder shown for a value the car did not report. */
@@ -64,12 +66,23 @@ fun StatTile(label: String, value: String, modifier: Modifier = Modifier, unit: 
                 overflow = TextOverflow.Ellipsis,
             )
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(value, style = MaterialTheme.typography.headlineSmall, maxLines = 1)
+                // The value shrinks to fit: tiles get narrow next to a detail pane, and
+                // some values are long ("2 135 → 2 140").
+                Text(
+                    value,
+                    style = MaterialTheme.typography.headlineSmall,
+                    autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = 24.sp, stepSize = 1.sp),
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
                 if (unit != null && value != NO_VALUE) {
                     Text(
                         unit,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        softWrap = false,
                         modifier = Modifier.padding(bottom = 3.dp),
                     )
                 }

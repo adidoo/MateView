@@ -4,6 +4,8 @@ package adidoo.mateview.ui
 import adidoo.mateview.MateViewApplication
 import adidoo.mateview.R
 import adidoo.mateview.data.settings.ConnectionSettings
+import adidoo.mateview.ui.screens.charges.ChargesScreen
+import adidoo.mateview.ui.screens.drives.DrivesScreen
 import adidoo.mateview.ui.screens.overview.OverviewScreen
 import adidoo.mateview.ui.settings.SettingsScreen
 import androidx.annotation.StringRes
@@ -79,6 +81,8 @@ fun MateViewApp() {
     ) {
         when (current) {
             TopDestination.Home -> OverviewScreen(onOpenSettings = { current = TopDestination.Settings })
+            TopDestination.Drives -> DrivesScreen(onOpenSettings = { current = TopDestination.Settings })
+            TopDestination.Charges -> ChargesScreen(onOpenSettings = { current = TopDestination.Settings })
             TopDestination.Settings -> SettingsScreen()
             else -> PlaceholderScreen(
                 title = stringResource(current.label),

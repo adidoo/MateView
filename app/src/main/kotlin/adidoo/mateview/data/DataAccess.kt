@@ -26,6 +26,20 @@ class NotConnectedException : IOException("No working connection is configured."
 data class UnitSettings(val length: String, val temperature: String, val preferredRange: String) {
     val isMetric: Boolean get() = length == "km"
 
+    /** Unit of altitudes and elevation gains. */
+    val altitude: String get() = if (isMetric) "m" else "ft"
+
+    val speed: String get() = if (isMetric) "km/h" else "mph"
+
+    /** The SQL variables every screen needs. */
+    fun variables(carId: Int): Map<String, String> = mapOf(
+        "car_id" to carId.toString(),
+        "length_unit" to length,
+        "alt_length_unit" to altitude,
+        "temp_unit" to temperature,
+        "preferred_range" to preferredRange,
+    )
+
     companion object {
         val DEFAULT = UnitSettings("km", "C", "rated")
 
