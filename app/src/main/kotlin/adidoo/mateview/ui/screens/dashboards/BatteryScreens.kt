@@ -110,7 +110,7 @@ class PeriodViewModel<T>(initial: ListPeriod, private val fetch: suspend (ListPe
 /** The frame shared by every dashboard: title with a back arrow, pull to refresh, scrolling content. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DashboardPage(
+internal fun DashboardPage(
     title: String,
     onBack: () -> Unit,
     loading: Boolean,
@@ -131,7 +131,7 @@ private fun DashboardPage(
 }
 
 @Composable
-private fun NoData() {
+internal fun NoData() {
     Text(
         stringResource(R.string.no_data_for_period),
         style = MaterialTheme.typography.bodyMedium,

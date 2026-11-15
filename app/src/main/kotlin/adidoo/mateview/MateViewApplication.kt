@@ -8,6 +8,7 @@ import adidoo.mateview.data.repo.BatteryRepository
 import adidoo.mateview.data.repo.ChargesRepository
 import adidoo.mateview.data.repo.DrivesRepository
 import adidoo.mateview.data.repo.OverviewRepository
+import adidoo.mateview.data.repo.StatsRepository
 import adidoo.mateview.data.settings.SecretStore
 import adidoo.mateview.data.settings.SettingsStore
 import adidoo.mateview.data.sql.SqlCatalog
@@ -37,6 +38,7 @@ class AppContainer(application: Application) {
     val drives = DrivesRepository(dataAccess)
     val charges = ChargesRepository(dataAccess)
     val battery = BatteryRepository(dataAccess)
+    val stats = StatsRepository(dataAccess)
 }
 
 class MateViewApplication : Application() {

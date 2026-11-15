@@ -68,12 +68,12 @@ enum class Dashboard(val group: DashboardGroup, @StringRes val label: Int, val i
     CHARGE_LEVEL(DashboardGroup.BATTERY, R.string.dash_charge_level, Icons.Outlined.BatteryChargingFull, true),
     PROJECTED_RANGE(DashboardGroup.BATTERY, R.string.dash_projected_range, Icons.Outlined.ShowChart, true),
     VAMPIRE_DRAIN(DashboardGroup.BATTERY, R.string.dash_vampire_drain, Icons.Outlined.Bolt, true),
-    STATISTICS(DashboardGroup.STATISTICS, R.string.dash_statistics, Icons.Outlined.BarChart),
-    DRIVE_STATS(DashboardGroup.STATISTICS, R.string.dash_drive_stats, Icons.Outlined.DirectionsCar),
-    CHARGING_STATS(DashboardGroup.STATISTICS, R.string.dash_charging_stats, Icons.Outlined.EvStation),
-    EFFICIENCY(DashboardGroup.STATISTICS, R.string.dash_efficiency, Icons.Outlined.Speed),
-    MILEAGE(DashboardGroup.STATISTICS, R.string.dash_mileage, Icons.Outlined.ShowChart),
-    TEMPERATURES(DashboardGroup.STATISTICS, R.string.dash_temperatures, Icons.Outlined.DeviceThermostat),
+    STATISTICS(DashboardGroup.STATISTICS, R.string.dash_statistics, Icons.Outlined.BarChart, true),
+    DRIVE_STATS(DashboardGroup.STATISTICS, R.string.dash_drive_stats, Icons.Outlined.DirectionsCar, true),
+    CHARGING_STATS(DashboardGroup.STATISTICS, R.string.dash_charging_stats, Icons.Outlined.EvStation, true),
+    EFFICIENCY(DashboardGroup.STATISTICS, R.string.dash_efficiency, Icons.Outlined.Speed, true),
+    MILEAGE(DashboardGroup.STATISTICS, R.string.dash_mileage, Icons.Outlined.ShowChart, true),
+    TEMPERATURES(DashboardGroup.STATISTICS, R.string.dash_temperatures, Icons.Outlined.DeviceThermostat, true),
     TIMELINE(DashboardGroup.PLACES, R.string.dash_timeline, Icons.Outlined.Timeline),
     TRIP(DashboardGroup.PLACES, R.string.dash_trip, Icons.Outlined.Map),
     STATES(DashboardGroup.PLACES, R.string.dash_states, Icons.Outlined.Settings),
@@ -106,6 +106,12 @@ fun DashboardsScreen(onOpenSettings: () -> Unit) {
             Dashboard.CHARGE_LEVEL -> ChargeLevelScreen(container, carId, back)
             Dashboard.PROJECTED_RANGE -> ProjectedRangeScreen(container, carId, back)
             Dashboard.VAMPIRE_DRAIN -> VampireDrainScreen(container, carId, back)
+            Dashboard.STATISTICS -> StatisticsScreen(container, carId, back)
+            Dashboard.DRIVE_STATS -> DriveStatsScreen(container, carId, back)
+            Dashboard.CHARGING_STATS -> ChargingStatsScreen(container, carId, back)
+            Dashboard.EFFICIENCY -> EfficiencyScreen(container, carId, back)
+            Dashboard.MILEAGE -> MileageScreen(container, carId, back)
+            Dashboard.TEMPERATURES -> TemperaturesScreen(container, carId, back)
             else -> open = null
         }
     }
