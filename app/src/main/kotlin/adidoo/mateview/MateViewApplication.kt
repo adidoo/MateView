@@ -4,6 +4,7 @@ package adidoo.mateview
 import adidoo.mateview.data.ConnectionTester
 import adidoo.mateview.data.DataAccess
 import adidoo.mateview.data.QueryCache
+import adidoo.mateview.data.repo.BatteryRepository
 import adidoo.mateview.data.repo.ChargesRepository
 import adidoo.mateview.data.repo.DrivesRepository
 import adidoo.mateview.data.repo.OverviewRepository
@@ -35,6 +36,7 @@ class AppContainer(application: Application) {
     val overview = OverviewRepository(dataAccess)
     val drives = DrivesRepository(dataAccess)
     val charges = ChargesRepository(dataAccess)
+    val battery = BatteryRepository(dataAccess)
 }
 
 class MateViewApplication : Application() {

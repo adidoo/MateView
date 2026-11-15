@@ -5,6 +5,7 @@ import adidoo.mateview.MateViewApplication
 import adidoo.mateview.R
 import adidoo.mateview.data.settings.ConnectionSettings
 import adidoo.mateview.ui.screens.charges.ChargesScreen
+import adidoo.mateview.ui.screens.dashboards.DashboardsScreen
 import adidoo.mateview.ui.screens.drives.DrivesScreen
 import adidoo.mateview.ui.screens.overview.OverviewScreen
 import adidoo.mateview.ui.settings.SettingsScreen
@@ -83,6 +84,7 @@ fun MateViewApp() {
             TopDestination.Home -> OverviewScreen(onOpenSettings = { current = TopDestination.Settings })
             TopDestination.Drives -> DrivesScreen(onOpenSettings = { current = TopDestination.Settings })
             TopDestination.Charges -> ChargesScreen(onOpenSettings = { current = TopDestination.Settings })
+            TopDestination.Dashboards -> DashboardsScreen(onOpenSettings = { current = TopDestination.Settings })
             TopDestination.Settings -> SettingsScreen()
             else -> PlaceholderScreen(
                 title = stringResource(current.label),
