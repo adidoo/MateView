@@ -1,6 +1,19 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+}
+
+// Release signing is optional and kept out of the repository: local.properties may point,
+// with `release.signing=<path>`, to a properties file holding storeFile, storePassword,
+// keyAlias and keyPassword. Without it, the release build is left unsigned.
+val releaseSigning: Properties? = run {
+    val local = Properties()
+    rootProject.file("local.properties").takeIf { it.isFile }?.inputStream()?.use(local::load)
+    local.getProperty("release.signing")?.let(::File)?.takeIf { it.isFile }?.let { file ->
+        Properties().apply { file.inputStream().use(::load) }
+    }
 }
 
 android {
@@ -17,11 +30,24 @@ android {
         versionName = "0.1.0"
     }
 
+    signingConfigs {
+        releaseSigning?.let { signing ->
+            create("release") {
+                storeFile = file(signing.getProperty("storeFile"))
+                storePassword = signing.getProperty("storePassword")
+                keyAlias = signing.getProperty("keyAlias")
+                keyPassword = signing.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            // Not minified for now: the release has not been through a test pass with R8 yet.
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
+            // Phones only: the map library also ships x86 libraries for emulators.
+            ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
         }
     }
 
