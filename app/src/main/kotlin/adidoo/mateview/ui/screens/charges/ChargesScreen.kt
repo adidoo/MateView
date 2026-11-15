@@ -379,7 +379,9 @@ private fun ChargeDetailContent(detail: ChargeDetail) {
             )
         }
     }
-    if (detail.curve.isNotEmpty()) {
+    // Only meaningful for DC fast charging, where power falls as the battery fills; an AC charge
+    // is limited by the charger and would only show a flat cluster of points.
+    if (charge.isDc && detail.curve.isNotEmpty()) {
         Panel(stringResource(R.string.chart_charging_curve)) {
             ScatterChart(
                 points = detail.curve,
