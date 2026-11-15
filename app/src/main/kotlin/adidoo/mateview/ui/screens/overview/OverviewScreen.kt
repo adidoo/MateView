@@ -75,7 +75,7 @@ private val ColorBad = Color(0xFFE5534B)
 private val ColorPower = Color(0xFF4C8DF6)
 private val ColorEnergy = Color(0xFF34C38F)
 
-private fun stateColor(state: CarState): Color = when (state) {
+internal fun stateColor(state: CarState): Color = when (state) {
     CarState.DRIVING -> Color(0xFF4C8DF6)
     CarState.CHARGING -> Color(0xFF34C38F)
     CarState.UPDATING -> Color(0xFFE0559A)
@@ -86,7 +86,7 @@ private fun stateColor(state: CarState): Color = when (state) {
 }
 
 @Composable
-private fun stateLabel(state: CarState): String = stringResource(
+internal fun stateLabel(state: CarState): String = stringResource(
     when (state) {
         CarState.DRIVING -> R.string.state_driving
         CarState.CHARGING -> R.string.state_charging

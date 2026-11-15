@@ -8,6 +8,8 @@ import adidoo.mateview.data.net.Table
 
 /** A period for the lists of drives and charges; [durationMs] is null for "everything". */
 enum class ListPeriod(val durationMs: Long?) {
+    DAY(DAY_MS),
+    WEEK(7 * DAY_MS),
     MONTH(30 * DAY_MS),
     QUARTER(90 * DAY_MS),
     YEAR(365 * DAY_MS),

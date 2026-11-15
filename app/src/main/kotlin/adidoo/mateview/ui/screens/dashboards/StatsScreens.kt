@@ -76,7 +76,7 @@ private const val DAY_MS = 24 * 60 * 60 * 1000L
 
 /** A statistics dashboard: loads [queries] over the chosen period and hands the tables to [content]. */
 @Composable
-private fun StatsPage(
+internal fun StatsPage(
     container: AppContainer,
     carId: Int,
     name: String,
@@ -85,6 +85,7 @@ private fun StatsPage(
     queries: Map<String, String>,
     initialPeriod: ListPeriod,
     granularity: Granularity = Granularity.MONTH,
+    periods: List<ListPeriod> = listOf(ListPeriod.MONTH, ListPeriod.QUARTER, ListPeriod.YEAR, ListPeriod.ALL),
     filters: @Composable () -> Unit = {},
     content: @Composable (StatsData) -> Unit,
 ) {
@@ -96,7 +97,7 @@ private fun StatsPage(
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
     DashboardPage(title, onBack, state.loading, state.error, viewModel::refresh) {
-        PeriodChips(state.period, viewModel::setPeriod)
+        PeriodChips(state.period, viewModel::setPeriod, periods)
         filters()
         val data = state.data ?: return@DashboardPage
         if (data.fromCache) StaleDataNote(data.fetchedAtMs)
@@ -133,7 +134,7 @@ private fun FactCard(title: String, content: @Composable () -> Unit) {
 
 /** A ranking: name, value, and a bar proportional to the largest value. */
 @Composable
-private fun RankList(items: List<Pair<String, Double>>, color: Color, format: (Double) -> String) {
+internal fun RankList(items: List<Pair<String, Double>>, color: Color, format: (Double) -> String) {
     val max = items.maxOfOrNull { it.second }?.takeIf { it > 0 } ?: return
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         items.forEach { (name, value) ->

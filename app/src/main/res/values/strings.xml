@@ -225,4 +225,27 @@
     <string name="stats_max">Max</string>
     <string name="stats_temperature_history">Inside and outside</string>
     <string name="stats_daily_outside">Daily outside minimum and maximum</string>
+    <string name="timeline_parked">Parked</string>
+    <string name="trip_driving">Driving</string>
+    <string name="trip_charging">Charging</string>
+    <string name="states_current">Current state</string>
+    <string name="states_since">Since</string>
+    <string name="states_parked">Parked (total)</string>
+    <string name="states_time_spent">Time spent over the period</string>
+    <string name="updates_median_gap">Median interval</string>
+    <string name="updates_after">%1$s after the previous one</string>
+    <string name="locations_addresses">Addresses</string>
+    <string name="locations_cities">Cities</string>
+    <string name="locations_regions">Regions</string>
+    <string name="locations_countries">Countries</string>
+    <string name="locations_top_cities">Cities by number of addresses</string>
+    <string name="locations_last_visited">Last visited</string>
+    <string name="visited_days">d</string>
+    <string name="database_size">Size</string>
+    <string name="database_timezone">Time zone</string>
+    <string name="database_schema">Schema</string>
+    <string name="database_incomplete">Incomplete</string>
+    <string name="database_tables">Tables by size</string>
+    <string name="database_rows">rows</string>
+    <string name="unit_megabyte">MB</string>
 </resources>

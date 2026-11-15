@@ -18,7 +18,9 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.BatteryChargingFull
@@ -49,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,7 +66,7 @@ enum class DashboardGroup(@StringRes val label: Int) {
 }
 
 /** The dashboards of TeslaMate beyond the three main tabs; [built] ones can be opened. */
-enum class Dashboard(val group: DashboardGroup, @StringRes val label: Int, val icon: ImageVector, val built: Boolean = false) {
+enum class Dashboard(val group: DashboardGroup, @StringRes val label: Int, val icon: ImageVector, val built: Boolean = true) {
     BATTERY_HEALTH(DashboardGroup.BATTERY, R.string.dash_battery_health, Icons.Outlined.BatteryFull, true),
     CHARGE_LEVEL(DashboardGroup.BATTERY, R.string.dash_charge_level, Icons.Outlined.BatteryChargingFull, true),
     PROJECTED_RANGE(DashboardGroup.BATTERY, R.string.dash_projected_range, Icons.Outlined.ShowChart, true),
@@ -88,6 +91,8 @@ fun DashboardsScreen(onOpenSettings: () -> Unit) {
     val container = (LocalContext.current.applicationContext as MateViewApplication).container
     val connection by container.settings.connection.collectAsStateWithLifecycle(initialValue = null)
     var open by rememberSaveable { mutableStateOf<Dashboard?>(null) }
+    // Kept here so that coming back from a dashboard returns to the same place in the list.
+    val gridState = rememberLazyGridState()
 
     val settings = connection ?: return
     val carId = settings.carId
@@ -97,7 +102,7 @@ fun DashboardsScreen(onOpenSettings: () -> Unit) {
 
     val current = open
     if (current == null) {
-        DashboardIndex(onOpen = { open = it })
+        DashboardIndex(gridState, onOpen = { open = it })
     } else {
         BackHandler { open = null }
         val back = { open = null }
@@ -112,15 +117,23 @@ fun DashboardsScreen(onOpenSettings: () -> Unit) {
             Dashboard.EFFICIENCY -> EfficiencyScreen(container, carId, back)
             Dashboard.MILEAGE -> MileageScreen(container, carId, back)
             Dashboard.TEMPERATURES -> TemperaturesScreen(container, carId, back)
-            else -> open = null
+            Dashboard.TIMELINE -> TimelineScreen(container, carId, back)
+            Dashboard.TRIP -> TripScreen(container, carId, back)
+            Dashboard.STATES -> StatesScreen(container, carId, back)
+            Dashboard.UPDATES -> UpdatesScreen(container, carId, back)
+            Dashboard.LOCATIONS -> LocationsScreen(container, carId, back)
+            Dashboard.VISITED -> VisitedScreen(container, carId, back)
+            Dashboard.DATABASE -> DatabaseScreen(container, carId, back)
         }
     }
 }
 
 @Composable
-private fun DashboardIndex(onOpen: (Dashboard) -> Unit) {
+private fun DashboardIndex(gridState: LazyGridState, onOpen: (Dashboard) -> Unit) {
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 150.dp),
+        state = gridState,
+        // Two columns on a phone in portrait, three in landscape: wide enough for the longest names.
+        columns = GridCells.Fixed((LocalConfiguration.current.screenWidthDp / 220).coerceIn(2, 4)),
         modifier = Modifier.fillMaxSize().safeDrawingPadding(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -162,7 +175,7 @@ private fun DashboardCard(dashboard: Dashboard, onClick: () -> Unit) {
             Column {
                 Text(
                     stringResource(dashboard.label),
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyMedium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )

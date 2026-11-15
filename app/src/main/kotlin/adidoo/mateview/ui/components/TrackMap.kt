@@ -65,6 +65,8 @@ fun TrackMap(
     track: List<GeoPoint>,
     modifier: Modifier = Modifier,
     color: Color = Color(0xFF4C8DF6),
+    /** False to show [track] as separate places instead of a route. */
+    showLine: Boolean = true,
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -103,11 +105,11 @@ fun TrackMap(
             map.uiSettings.isAttributionEnabled = false
             map.setStyle(Style.Builder().fromJson(OSM_STYLE)) { style ->
                 val points = track.map { Point.fromLngLat(it.longitude, it.latitude) }
-                val ends = listOf(points.first(), points.last()).distinct()
+                val ends = if (showLine) listOf(points.first(), points.last()).distinct() else points
                 style.addSource(
                     GeoJsonSource("ends", FeatureCollection.fromFeatures(ends.map { Feature.fromGeometry(it) })),
                 )
-                if (points.size > 1) {
+                if (showLine && points.size > 1) {
                     style.addSource(GeoJsonSource("route", Feature.fromGeometry(LineString.fromLngLats(points))))
                     style.addLayer(
                         LineLayer("route", "route").withProperties(

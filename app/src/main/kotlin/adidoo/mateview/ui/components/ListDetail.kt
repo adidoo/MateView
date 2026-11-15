@@ -111,9 +111,14 @@ fun DetailHeader(title: String, subtitle: String?, showBack: Boolean, onBack: ()
 }
 
 @Composable
-fun PeriodChips(selected: ListPeriod, onSelect: (ListPeriod) -> Unit) {
+fun PeriodChips(
+    selected: ListPeriod,
+    onSelect: (ListPeriod) -> Unit,
+    options: List<ListPeriod> = listOf(ListPeriod.MONTH, ListPeriod.QUARTER, ListPeriod.YEAR, ListPeriod.ALL),
+) {
+    if (options.size < 2) return
     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        ListPeriod.entries.forEach { period ->
+        options.forEach { period ->
             FilterChip(
                 selected = period == selected,
                 onClick = { onSelect(period) },
@@ -121,6 +126,8 @@ fun PeriodChips(selected: ListPeriod, onSelect: (ListPeriod) -> Unit) {
                     Text(
                         stringResource(
                             when (period) {
+                                ListPeriod.DAY -> R.string.period_24h
+                                ListPeriod.WEEK -> R.string.period_7d
                                 ListPeriod.MONTH -> R.string.period_30d
                                 ListPeriod.QUARTER -> R.string.period_90d
                                 ListPeriod.YEAR -> R.string.period_1y
