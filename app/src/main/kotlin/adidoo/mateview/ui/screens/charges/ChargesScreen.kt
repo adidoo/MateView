@@ -8,11 +8,21 @@ import adidoo.mateview.data.repo.ChargeDetail
 import adidoo.mateview.data.repo.ChargeList
 import adidoo.mateview.data.repo.ChargeSummary
 import adidoo.mateview.data.repo.ListPeriod
+import adidoo.mateview.data.UnitSettings
 import adidoo.mateview.ui.components.AdaptiveTiles
+import adidoo.mateview.ui.components.CardGrid
+import adidoo.mateview.ui.components.DayHeader
+import adidoo.mateview.ui.components.Metric
+import adidoo.mateview.ui.components.SocBar
+import adidoo.mateview.ui.components.StartEndGlyph
+import adidoo.mateview.ui.components.dayOf
+import adidoo.mateview.ui.components.formatTime
+import adidoo.mateview.ui.components.fullWidth
 import adidoo.mateview.ui.components.ChartSeries
 import adidoo.mateview.ui.components.DetailHeader
 import adidoo.mateview.ui.components.ErrorPanel
 import adidoo.mateview.ui.components.ListDetailLayout
+import adidoo.mateview.ui.components.MapWithFigures
 import adidoo.mateview.ui.components.NO_VALUE
 import adidoo.mateview.ui.components.NotConnectedMessage
 import adidoo.mateview.ui.components.Panel
@@ -33,17 +43,21 @@ import adidoo.mateview.ui.screens.DetailViewModel
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AssistChip
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DeviceThermostat
+import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
@@ -62,6 +76,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -71,6 +86,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 
 private val ColorPower = Color(0xFF4C8DF6)
 private val ColorBattery = Color(0xFF34C38F)
+private val ColorDc = Color(0xFFF2B33D)
 private val ColorVoltage = Color(0xFFF2B33D)
 private val ColorCurrent = Color(0xFFE0559A)
 private val ColorPlace = Color(0xFF34C38F)
@@ -118,14 +134,10 @@ fun ChargesScreen(onOpenSettings: () -> Unit) {
                             TypeFilter.DC -> charge.isDc
                         }
                 }
-                LazyColumn(
-                    Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    item { Text(stringResource(R.string.nav_charges), style = MaterialTheme.typography.headlineSmall) }
-                    item { PeriodChips(state.period, viewModel::setPeriod) }
-                    item {
+                CardGrid {
+                    fullWidth { Text(stringResource(R.string.nav_charges), style = MaterialTheme.typography.headlineSmall) }
+                    fullWidth { PeriodChips(state.period, viewModel::setPeriod) }
+                    fullWidth {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             TypeFilter.entries.forEach { filter ->
                                 FilterChip(
@@ -144,15 +156,23 @@ fun ChargesScreen(onOpenSettings: () -> Unit) {
                             }
                         }
                     }
-                    item { SearchField(query) { query = it } }
-                    state.data?.takeIf { it.fromCache }?.let { item { StaleDataNote(it.fetchedAtMs) } }
-                    state.error?.let { item { ErrorPanel(it, viewModel::refresh) } }
-                    if (state.data != null) item { ChargesSummary(charges) }
+                    fullWidth { SearchField(query) { query = it } }
+                    state.data?.takeIf { it.fromCache }?.let { fullWidth { StaleDataNote(it.fetchedAtMs) } }
+                    state.error?.let { fullWidth { ErrorPanel(it, viewModel::refresh) } }
+                    if (state.data != null) fullWidth { ChargesSummary(charges) }
                     if (state.data != null && charges.isEmpty()) {
-                        item { Text(stringResource(R.string.charges_none), color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        fullWidth { Text(stringResource(R.string.charges_none), color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     }
-                    items(charges, key = { it.id }) { charge ->
-                        ChargeCard(charge, selected = charge.id == state.selectedId) { viewModel.select(charge.id) }
+                    val units = state.data?.units
+                    if (units != null) {
+                        charges.groupBy { dayOf(it.startMs) }.forEach { (day, ofDay) ->
+                            fullWidth(key = "day-$day") {
+                                DayHeader(day, formatNumber(ofDay.sumOf { it.energyAdded ?: 0.0 }, 1) + " kWh")
+                            }
+                            items(ofDay, key = { it.id }) { charge ->
+                                ChargeCard(charge, units, selected = charge.id == state.selectedId) { viewModel.select(charge.id) }
+                            }
+                        }
                     }
                 }
             }
@@ -186,8 +206,15 @@ private fun ChargesSummary(charges: List<ChargeSummary>) {
     )
 }
 
+/**
+ * A charge in the same shape as a drive: start and end times joined by a line,
+ * the place and the kind of charge, the energy added and the duration on the
+ * right; temperature, cost and the battery gained underneath.
+ */
 @Composable
-private fun ChargeCard(charge: ChargeSummary, selected: Boolean, onClick: () -> Unit) {
+private fun ChargeCard(charge: ChargeSummary, units: UnitSettings, selected: Boolean, onClick: () -> Unit) {
+    val accent = if (charge.isDc) ColorDc else ColorBattery
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
     ElevatedCard(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -195,29 +222,49 @@ private fun ChargeCard(charge: ChargeSummary, selected: Boolean, onClick: () -> 
             containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer,
         ),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(formatDayTime(charge.startMs), style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
-                Text(formatNumber(charge.energyAdded, 1) + " kWh", style = MaterialTheme.typography.titleMedium)
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
+                    Text(formatTime(charge.startMs), style = MaterialTheme.typography.labelLarge, color = muted)
+                    Text(charge.endMs?.let { formatTime(it) } ?: "…", style = MaterialTheme.typography.labelLarge, color = muted)
+                }
+                StartEndGlyph(accent)
+                Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        charge.address ?: NO_VALUE,
+                        style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        listOfNotNull(
+                            if (charge.isDc) "DC" else "AC",
+                            charge.avgPower?.let { formatNumber(it, 1) + " kW" },
+                        ).joinToString(" · "),
+                        style = MaterialTheme.typography.bodyLarge, color = accent, maxLines = 1,
+                    )
+                }
+                Column(Modifier.fillMaxHeight(), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.SpaceBetween) {
+                    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(
+                            formatNumber(charge.energyAdded, 1),
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                        )
+                        Text("kWh", style = MaterialTheme.typography.bodyMedium, color = muted, modifier = Modifier.padding(bottom = 2.dp))
+                    }
+                    Text(
+                        if (charge.endMs == null) stringResource(R.string.in_progress) else formatMinutes(charge.durationMin),
+                        style = MaterialTheme.typography.labelLarge, color = muted,
+                    )
+                }
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistChip(onClick = onClick, label = { Text(if (charge.isDc) "DC" else "AC") })
-                Text(
-                    charge.address ?: NO_VALUE,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                if (charge.outsideTemp != null) {
+                    Metric(Icons.Outlined.DeviceThermostat, formatNumber(charge.outsideTemp) + " °" + units.temperature, muted)
+                }
+                if (charge.cost != null) Metric(Icons.Outlined.Payments, formatCost(charge.cost), muted)
+                Box(Modifier.weight(1f))
+                SocBar(charge.startSoc, charge.endSoc, accent, gained = true)
             }
-            Text(
-                listOfNotNull(
-                    if (charge.endMs == null) stringResource(R.string.in_progress) else formatMinutes(charge.durationMin),
-                    formatSocRange(charge.startSoc, charge.endSoc),
-                    charge.cost?.let { formatCost(it) },
-                ).joinToString("  ·  "),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }
@@ -270,8 +317,8 @@ private fun ChargeDetailContent(detail: ChargeDetail) {
     val from = detail.power.firstOrNull()?.timeMs ?: charge.startMs
     val to = charge.endMs ?: detail.power.lastOrNull()?.timeMs ?: from + 60_000L
 
-    detail.location?.let { TrackMap(listOf(it), color = ColorPlace) }
-
+    val map: (@Composable () -> Unit)? = detail.location?.let { place -> { TrackMap(listOf(place), color = ColorPlace) } }
+    MapWithFigures(map) {
     AdaptiveTiles(
         listOf(
             { m -> StatTile(stringResource(R.string.charges_added), formatNumber(charge.energyAdded, 2), m, "kWh") },
@@ -294,6 +341,7 @@ private fun ChargeDetailContent(detail: ChargeDetail) {
             { m -> StatTile(stringResource(R.string.drive_outside_temp), formatNumber(charge.outsideTemp, 1), m, "°" + units.temperature) },
         ),
     )
+    }
 
     if (detail.power.isNotEmpty()) {
         Panel(stringResource(R.string.chart_power)) {

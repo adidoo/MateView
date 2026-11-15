@@ -32,11 +32,19 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import adidoo.mateview.ui.components.AdaptiveTiles
+import adidoo.mateview.ui.components.CardGrid
+import adidoo.mateview.ui.components.DayHeader
+import adidoo.mateview.ui.components.Metric
+import adidoo.mateview.ui.components.SocBar
+import adidoo.mateview.ui.components.StartEndGlyph
+import adidoo.mateview.ui.components.dayOf
+import adidoo.mateview.ui.components.fullWidth
 import adidoo.mateview.ui.components.CategoryBarChart
 import adidoo.mateview.ui.components.ChartSeries
 import adidoo.mateview.ui.components.DetailHeader
 import adidoo.mateview.ui.components.ErrorPanel
 import adidoo.mateview.ui.components.ListDetailLayout
+import adidoo.mateview.ui.components.MapWithFigures
 import adidoo.mateview.ui.components.NO_VALUE
 import adidoo.mateview.ui.components.NotConnectedMessage
 import adidoo.mateview.ui.components.Panel
@@ -54,14 +62,14 @@ import adidoo.mateview.ui.screens.CarListViewModel
 import adidoo.mateview.ui.screens.DetailViewModel
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CardDefaults
@@ -131,25 +139,23 @@ fun DrivesScreen(onOpenSettings: () -> Unit) {
                 modifier = modifier.safeDrawingPadding(),
             ) {
                 val drives = state.data?.drives.orEmpty().filter { it.matches(query) }
-                LazyColumn(
-                    Modifier.fillMaxSize(),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    item { Text(stringResource(R.string.nav_drives), style = MaterialTheme.typography.headlineSmall) }
-                    item { PeriodChips(state.period, viewModel::setPeriod) }
-                    item { SearchField(query) { query = it } }
-                    state.data?.takeIf { it.fromCache }?.let { item { StaleDataNote(it.fetchedAtMs) } }
-                    state.error?.let { item { ErrorPanel(it, viewModel::refresh) } }
-                    state.data?.let { data -> item { DrivesSummary(drives, data) } }
+                CardGrid {
+                    fullWidth { Text(stringResource(R.string.nav_drives), style = MaterialTheme.typography.headlineSmall) }
+                    fullWidth { PeriodChips(state.period, viewModel::setPeriod) }
+                    fullWidth { SearchField(query) { query = it } }
+                    state.data?.takeIf { it.fromCache }?.let { fullWidth { StaleDataNote(it.fetchedAtMs) } }
+                    state.error?.let { fullWidth { ErrorPanel(it, viewModel::refresh) } }
+                    state.data?.let { data -> fullWidth { DrivesSummary(drives, data) } }
                     if (state.data != null && drives.isEmpty()) {
-                        item { Text(stringResource(R.string.drives_none), color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        fullWidth { Text(stringResource(R.string.drives_none), color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     }
                     val units = state.data?.units
                     if (units != null) {
                         val average = averageConsumption(drives)
                         drives.groupBy { dayOf(it.startMs) }.forEach { (day, ofDay) ->
-                            item(key = "day-$day") { DayHeader(day, ofDay, units) }
+                            fullWidth(key = "day-$day") {
+                                DayHeader(day, formatNumber(ofDay.sumOf { it.distance ?: 0.0 }) + " " + units.length)
+                            }
                             items(ofDay, key = { it.id }) { drive ->
                                 DriveCard(drive, units, average, selected = drive.id == state.selectedId) {
                                     viewModel.select(drive.id)
@@ -194,27 +200,10 @@ private fun DrivesSummary(drives: List<DriveSummary>, data: DriveList) {
     )
 }
 
-private fun dayOf(timeMs: Long): LocalDate = Instant.ofEpochMilli(timeMs).atZone(ZoneId.systemDefault()).toLocalDate()
-
 /** Net consumption over all the listed drives, in Wh per distance unit; null without distance. */
 private fun averageConsumption(drives: List<DriveSummary>): Double? {
     val distance = drives.sumOf { it.distance ?: 0.0 }
     return if (distance > 0) drives.sumOf { it.energy ?: 0.0 } * 1000 / distance else null
-}
-
-/** "Samedi 14 novembre" on the left, the day's total on the right. */
-@Composable
-private fun DayHeader(day: LocalDate, drives: List<DriveSummary>, units: UnitSettings) {
-    val label = day.format(DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.getDefault()))
-        .replaceFirstChar { it.titlecase(Locale.getDefault()) }
-    Row(Modifier.fillMaxWidth().padding(top = 8.dp, start = 4.dp, end = 4.dp), verticalAlignment = Alignment.Bottom) {
-        Text(label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-        Text(
-            formatNumber(drives.sumOf { it.distance ?: 0.0 }) + " " + units.length,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
 }
 
 /**
@@ -240,16 +229,7 @@ private fun DriveCard(drive: DriveSummary, units: UnitSettings, average: Double?
                     Text(formatTime(drive.startMs), style = MaterialTheme.typography.labelLarge, color = muted)
                     Text(drive.endMs?.let { formatTime(it) } ?: "…", style = MaterialTheme.typography.labelLarge, color = muted)
                 }
-                // The route: a ring, a line, a dot.
-                Canvas(Modifier.width(12.dp).fillMaxHeight()) {
-                    val radius = 5.dp.toPx()
-                    val x = size.width / 2
-                    val top = 9.dp.toPx()
-                    val bottom = size.height - 9.dp.toPx()
-                    drawLine(routeColor.copy(alpha = 0.5f), Offset(x, top + radius), Offset(x, bottom - radius), strokeWidth = 2.dp.toPx())
-                    drawCircle(routeColor, radius - 1.dp.toPx(), Offset(x, top), style = Stroke(2.dp.toPx()))
-                    drawCircle(routeColor, radius, Offset(x, bottom))
-                }
+                StartEndGlyph(routeColor)
                 Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         drive.startAddress ?: NO_VALUE,
@@ -272,6 +252,9 @@ private fun DriveCard(drive: DriveSummary, units: UnitSettings, average: Double?
                 }
             }
 
+            // In a narrow card (two columns on a phone in landscape) the temperature gives way to the battery.
+            BoxWithConstraints {
+            val roomForTemperature = maxWidth >= 330.dp
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 // Greener than the period's average, or thirstier.
                 val consumption = drive.consumption
@@ -282,41 +265,14 @@ private fun DriveCard(drive: DriveSummary, units: UnitSettings, average: Double?
                     else -> muted
                 }
                 Metric(Icons.Outlined.Bolt, formatNumber(consumption) + " Wh/" + units.length, tint)
-                if (drive.outsideTemp != null) {
+                if (drive.outsideTemp != null && roomForTemperature) {
                     Metric(Icons.Outlined.DeviceThermostat, formatNumber(drive.outsideTemp) + " °" + units.temperature, muted)
                 }
                 Box(Modifier.weight(1f))
-                SocUsed(drive.startSoc, drive.endSoc)
+                SocBar(drive.startSoc, drive.endSoc, ColorBattery, gained = false)
+            }
             }
         }
-    }
-}
-
-@Composable
-private fun Metric(icon: ImageVector, text: String, tint: Color) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
-        Text(text, style = MaterialTheme.typography.bodyMedium, color = tint)
-    }
-}
-
-/** A small battery bar: what is left in full colour, what the drive used in a lighter tone. */
-@Composable
-private fun SocUsed(start: Double?, end: Double?) {
-    if (start == null || end == null) return
-    val track = MaterialTheme.colorScheme.surfaceContainerHighest
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Canvas(Modifier.width(56.dp).height(8.dp)) {
-            val corner = CornerRadius(size.height / 2)
-            drawRoundRect(track, cornerRadius = corner)
-            drawRoundRect(ColorBattery.copy(alpha = 0.4f), size = Size(size.width * (start / 100).toFloat(), size.height), cornerRadius = corner)
-            drawRoundRect(ColorBattery, size = Size(size.width * (end / 100).toFloat(), size.height), cornerRadius = corner)
-        }
-        Text(
-            "${formatNumber(start)} → ${formatNumber(end)} %",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 
@@ -368,8 +324,8 @@ private fun DriveDetailContent(detail: DriveDetail) {
     val from = drive.startMs
     val to = drive.endMs ?: detail.speed.lastOrNull()?.timeMs ?: from + 60_000L
 
-    if (detail.track.isNotEmpty()) TrackMap(detail.track)
-
+    val map: (@Composable () -> Unit)? = if (detail.track.isNotEmpty()) ({ TrackMap(detail.track) }) else null
+    MapWithFigures(map) {
     AdaptiveTiles(
         listOf(
             { m -> StatTile(stringResource(R.string.drives_distance), formatNumber(drive.distance, 1), m, units.length) },
@@ -395,6 +351,7 @@ private fun DriveDetailContent(detail: DriveDetail) {
             },
         ),
     )
+    }
 
     if (detail.speed.isNotEmpty() || detail.power.isNotEmpty()) {
         Panel(stringResource(R.string.chart_speed_power)) {
