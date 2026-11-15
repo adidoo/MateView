@@ -190,7 +190,7 @@
     <string name="vampire_periods">Périodes à l\'arrêt</string>
     <string name="vampire_energy">Énergie perdue</string>
     <string name="vampire_avg_power">Puissance moy.</string>
-    <string name="vampire_per_day">Autonomie perdue par jour</string>
+    <string name="vampire_per_day">Perte par jour</string>
     <string name="vampire_standby">%1$s %% en veille</string>
     <string name="vampire_reduced_range">Batterie froide : perte non mesurable</string>
 </resources>

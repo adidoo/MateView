@@ -193,7 +193,7 @@
     <string name="vampire_periods">Idle periods</string>
     <string name="vampire_energy">Energy drained</string>
     <string name="vampire_avg_power">Ø power</string>
-    <string name="vampire_per_day">Range lost per day</string>
+    <string name="vampire_per_day">Range lost / day</string>
     <string name="vampire_standby">%1$s %% asleep</string>
     <string name="vampire_reduced_range">Cold battery: loss not measurable</string>
 </resources>

@@ -327,8 +327,8 @@ fun VampireDrainScreen(container: AppContainer, carId: Int, onBack: () -> Unit) 
 
     DashboardPage(stringResource(R.string.dash_vampire_drain), onBack, state.loading, state.error, viewModel::refresh) {
         PeriodChips(state.period, viewModel::setPeriod)
+        Text(stringResource(R.string.vampire_min_idle), style = MaterialTheme.typography.labelLarge)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.vampire_min_idle), style = MaterialTheme.typography.labelLarge)
             IDLE_HOURS.forEach { hours ->
                 FilterChip(selected = hours == minHours, onClick = { minHours = hours }, label = { Text("$hours h") })
             }
