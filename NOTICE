@@ -1,0 +1,26 @@
+MateView
+Copyright (C) 2026 the MateView contributors
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+
+MateView is free software: you can redistribute it and/or modify it under the
+terms of the GNU Affero General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version. See LICENSE for the full text.
+
+MateView is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+details.
+
+This project is an unofficial community tool and is not affiliated with,
+endorsed by, or supported by the official TeslaMate project.
+
+Third-party material
+--------------------
+
+The SQL queries under app/src/main/assets/sql/ are modified versions of the
+queries found in the Grafana dashboards of TeslaMate v4.4.0
+(https://github.com/teslamate-org/teslamate, AGPL-3.0-or-later). They have
+been adapted for MateView and are not the original TeslaMate. TeslaMate's
+NOTICE file is preserved in its entirety in third_party/teslamate/NOTICE.

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_home">Accueil</string>
+    <string name="nav_drives">Trajets</string>
+    <string name="nav_charges">Charges</string>
+    <string name="nav_dashboards">Tableaux</string>
+    <string name="nav_settings">Réglages</string>
+    <string name="placeholder_not_built">Cet écran n\'est pas encore construit.</string>
+</resources>

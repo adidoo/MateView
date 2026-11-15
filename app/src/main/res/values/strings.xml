@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">MateView</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_drives">Drives</string>
+    <string name="nav_charges">Charges</string>
+    <string name="nav_dashboards">Dashboards</string>
+    <string name="nav_settings">Settings</string>
+    <string name="placeholder_not_built">This screen is not built yet.</string>
+</resources>
