@@ -50,6 +50,10 @@ data class Overview(
     val states: List<StateChange>,
     /** Width of the buckets the chart series were averaged into. */
     val bucketMs: Long,
+    /** The charge in progress, sample by sample; empty when the car is not charging. */
+    val livePower: List<Point> = emptyList(),
+    val liveEnergy: List<Point> = emptyList(),
+    val liveSoc: List<Point> = emptyList(),
 )
 
 class OverviewRepository(private val data: DataAccess) {
@@ -104,7 +108,7 @@ class OverviewRepository(private val data: DataAccess) {
             stateSinceMs = when (state) {
                 CarState.DRIVING -> drivingSince
                 CarState.UPDATING -> updatingSince
-                CarState.CHARGING -> null
+                CarState.CHARGING -> result["current_charge"].firstLong("time")
                 else -> summary.firstLong("state_since")
             },
             place = summary.firstString("place"),
@@ -139,6 +143,9 @@ class OverviewRepository(private val data: DataAccess) {
                 }
             },
             bucketMs = bucketSeconds * 1000L,
+            livePower = if (isCharging) result["current_charge"].points("time", "charger_power") else emptyList(),
+            liveEnergy = if (isCharging) result["current_charge"].points("time", "charge_energy_added") else emptyList(),
+            liveSoc = if (isCharging) result["current_charge"].points("time", "battery_level") else emptyList(),
         )
     }
 
@@ -155,7 +162,7 @@ class OverviewRepository(private val data: DataAccess) {
     companion object {
         private val QUERIES = listOf(
             "battery", "charging", "summary", "drives", "consumption_gross",
-            "temperatures", "charge_level", "charging_details", "charge_sessions", "states",
+            "temperatures", "charge_level", "charging_details", "charge_sessions", "states", "current_charge",
         )
 
         /** Aims at about 300 points per chart, never finer than one minute. */

@@ -342,6 +342,31 @@ private fun ChartPanels(overview: Overview) {
     val to = overview.range.toMs
     val gap = overview.bucketMs * 3
 
+    // While charging, the charge itself comes first, on its own time scale.
+    if (overview.livePower.isNotEmpty()) {
+        val start = overview.livePower.first().timeMs
+        val added = overview.liveEnergy.lastOrNull()?.value
+        val level = overview.liveSoc.lastOrNull()?.value
+        Panel(stringResource(R.string.overview_chart_live_charge)) {
+            Text(
+                listOfNotNull(
+                    added?.let { "+" + formatNumber(it, 2) + " kWh" },
+                    level?.let { formatNumber(it) + " %" },
+                ).joinToString("  ·  "),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            TimeLineChart(
+                series = listOf(
+                    ChartSeries(stringResource(R.string.overview_series_power), ColorPower, overview.livePower),
+                    ChartSeries(stringResource(R.string.overview_series_energy), ColorEnergy, overview.liveEnergy),
+                ),
+                // At least ten minutes wide, so the first samples do not fill the whole chart.
+                fromMs = start, toMs = maxOf(to, start + 10 * MINUTE_MS), yMin = 0.0,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+
     Panel(stringResource(R.string.overview_chart_charge_level)) {
         if (overview.chargeLevel.isEmpty()) {
             NoData()

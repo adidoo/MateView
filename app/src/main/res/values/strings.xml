@@ -84,6 +84,7 @@
     <string name="overview_temp_outside">Outside</string>
     <string name="overview_chart_charge_level">Charge level</string>
     <string name="overview_chart_energy_per_day">Energy charged per day</string>
+    <string name="overview_chart_live_charge">Charge in progress</string>
     <string name="overview_chart_charging">Charging details</string>
     <string name="overview_series_power">Power (kW)</string>
     <string name="overview_series_energy">Energy added (kWh)</string>
