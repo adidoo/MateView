@@ -26,8 +26,8 @@ android {
         applicationId = "adidoo.mateview"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
     }
 
     signingConfigs {
@@ -43,11 +43,19 @@ android {
 
     buildTypes {
         release {
-            // Not minified for now: the release has not been through a test pass with R8 yet.
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.findByName("release")
             // Phones only: the map library also ships x86 libraries for emulators.
             ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+        }
+        // The release code, shrunk the same way but signed with the debug key, so that it can be
+        // installed over a debug build to test the shrinking without losing the app's settings.
+        create("releaseTest") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += "release"
         }
     }
 

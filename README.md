@@ -5,7 +5,7 @@ installation. Read-only, in portrait and landscape, at home and away.
 
 > This project is an unofficial community tool and is not affiliated with, endorsed by, or supported by the official TeslaMate project.
 
-**Status: first test version (0.1.0).** It works against TeslaMate v4.4.0 on
+**Status: test version (0.1.1).** It works against TeslaMate v4.4.0 on
 the author's installation and has not been tried anywhere else yet. Expect
 rough edges.
 
