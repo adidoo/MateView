@@ -31,6 +31,7 @@ import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import org.maplibre.android.style.expressions.Expression
 import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
@@ -40,6 +41,7 @@ import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.LineString
 import org.maplibre.geojson.Point
+import kotlin.math.sqrt
 
 /** OpenStreetMap raster tiles: free, no key, attribution required. */
 private const val OSM_STYLE = """{
@@ -67,6 +69,8 @@ fun TrackMap(
     color: Color = Color(0xFF4C8DF6),
     /** False to show [track] as separate places instead of a route. */
     showLine: Boolean = true,
+    /** With [showLine] false: one weight per place, to draw the heavier places larger. */
+    weights: List<Double>? = null,
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -97,7 +101,7 @@ fun TrackMap(
         }
     }
 
-    LaunchedEffect(mapView, track) {
+    LaunchedEffect(mapView, track, weights) {
         if (track.isEmpty()) return@LaunchedEffect
         mapView.getMapAsync { map ->
             map.uiSettings.setAllGesturesEnabled(false)
@@ -106,8 +110,19 @@ fun TrackMap(
             map.setStyle(Style.Builder().fromJson(OSM_STYLE)) { style ->
                 val points = track.map { Point.fromLngLat(it.longitude, it.latitude) }
                 val ends = if (showLine) listOf(points.first(), points.last()).distinct() else points
+                val heaviest = weights?.maxOrNull()?.takeIf { it > 0 && !showLine }
                 style.addSource(
-                    GeoJsonSource("ends", FeatureCollection.fromFeatures(ends.map { Feature.fromGeometry(it) })),
+                    GeoJsonSource(
+                        "ends",
+                        FeatureCollection.fromFeatures(
+                            ends.mapIndexed { index, point ->
+                                // The area of the circle, not its radius, follows the weight.
+                                val weight = weights?.getOrNull(index)?.coerceAtLeast(0.0) ?: 0.0
+                                val radius = if (heaviest == null) 6.0 else 5 + 13 * sqrt(weight / heaviest)
+                                Feature.fromGeometry(point).apply { addNumberProperty("radius", radius) }
+                            },
+                        ),
+                    ),
                 )
                 if (showLine && points.size > 1) {
                     style.addSource(GeoJsonSource("route", Feature.fromGeometry(LineString.fromLngLats(points))))
@@ -123,7 +138,8 @@ fun TrackMap(
                 style.addLayer(
                     CircleLayer("ends", "ends").withProperties(
                         PropertyFactory.circleColor(color.toArgb()),
-                        PropertyFactory.circleRadius(6f),
+                        PropertyFactory.circleRadius(Expression.get("radius")),
+                        PropertyFactory.circleOpacity(if (heaviest == null) 1f else 0.8f),
                         PropertyFactory.circleStrokeColor(Color.White.toArgb()),
                         PropertyFactory.circleStrokeWidth(2f),
                     ),

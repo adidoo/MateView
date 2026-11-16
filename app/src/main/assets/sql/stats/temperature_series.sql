@@ -3,7 +3,8 @@
 SELECT
   date_bin('$bucket_s seconds'::interval, date, TIMESTAMP '2001-01-01') AS time,
   convert_celsius(avg(inside_temp), '$temp_unit') AS inside_temp,
-  convert_celsius(avg(outside_temp), '$temp_unit') AS outside_temp
+  convert_celsius(avg(outside_temp), '$temp_unit') AS outside_temp,
+  convert_celsius(avg(driver_temp_setting), '$temp_unit') AS setpoint
 FROM positions
 WHERE car_id = $car_id AND ideal_battery_range_km IS NOT NULL
   AND (inside_temp IS NOT NULL OR outside_temp IS NOT NULL) AND $__timeFilter(date)

@@ -224,7 +224,7 @@
     <string name="stats_avg">Average</string>
     <string name="stats_max">Max</string>
     <string name="stats_temperature_history">Inside and outside</string>
-    <string name="stats_daily_outside">Daily outside minimum and maximum</string>
+    <string name="stats_daily_outside">Outside temperature per day</string>
     <string name="timeline_parked">Parked</string>
     <string name="trip_driving">Driving</string>
     <string name="trip_charging">Charging</string>
@@ -249,4 +249,23 @@
     <string name="database_rows">rows</string>
     <string name="unit_megabyte">MB</string>
     <string name="error_offline">The server cannot be reached. Check the network connection.</string>
+    <string name="stats_gross">Gross consumption</string>
+    <string name="stats_supercharger_cost">Supercharger cost</string>
+    <string name="stats_cost_per_kwh_ac">Cost / kWh AC</string>
+    <string name="stats_cost_per_kwh_dc">Cost / kWh DC</string>
+    <string name="stats_charging_map">Charging locations, sized by energy</string>
+    <string name="stats_soc_at_start">Battery level when charging starts (%)</string>
+    <string name="stats_soc_at_end">Battery level when charging ends (%)</string>
+    <string name="stats_dc_curve">DC charging curve (median power)</string>
+    <string name="stats_top_stations_cost">Charging locations by cost</string>
+    <string name="stats_setpoint">Setpoint</string>
+    <string name="stats_temp_charging">Outside temperature while charging</string>
+    <string name="stats_daily_range">Min – max</string>
+    <string name="stats_daily_band">Most of the day</string>
+    <string name="locations_geofences">Geofences</string>
+    <string name="visited_day_count">Days</string>
+    <string name="visited_first">First visit</string>
+    <string name="visited_last">Last visit</string>
+    <string name="database_indexes">Most used indexes</string>
+    <string name="database_scans">scans</string>
 </resources>

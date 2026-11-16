@@ -61,6 +61,8 @@ import androidx.compose.ui.unit.dp
 
 private val SHORT_PERIODS = listOf(ListPeriod.DAY, ListPeriod.WEEK, ListPeriod.MONTH)
 private val ColorBattery = Color(0xFF34C38F)
+private val ColorRange = Color(0xFF4C8DF6)
+private val ColorElevation = Color(0xFF9C7B5B)
 private val ColorPlaces = Color(0xFF4C8DF6)
 
 private const val MINUTE_MS = 60_000L
@@ -177,7 +179,11 @@ fun TimelineScreen(container: AppContainer, carId: Int, onBack: () -> Unit) {
 fun TripScreen(container: AppContainer, carId: Int, onBack: () -> Unit) {
     StatsPage(
         container, carId, "trip", stringResource(R.string.dash_trip), onBack,
-        queries = mapOf("summary" to "places/trip_summary.sql", "track" to "places/trip_track.sql", "level" to "battery/charge_level.sql"),
+        queries = mapOf(
+            "summary" to "places/trip_summary.sql", "track" to "places/trip_track.sql", "level" to "places/trip_level.sql",
+            "elevation" to "places/trip_elevation.sql", "gross" to "overview/consumption_gross.sql",
+            "drives" to "drives/list.sql", "charges" to "charges/list.sql",
+        ),
         initialPeriod = ListPeriod.DAY, periods = SHORT_PERIODS,
     ) { data ->
         val summary = data["summary"]
@@ -215,6 +221,7 @@ fun TripScreen(container: AppContainer, carId: Int, onBack: () -> Unit) {
                         m, "Wh/$length",
                     )
                 },
+                { m -> StatTile(stringResource(R.string.overview_consumption_gross), formatNumber(data["gross"].firstDouble("consumption_gross")), m, "Wh/$length") },
                 { m -> StatTile(stringResource(R.string.charges_added), formatNumber(summary.firstDouble("energy_added"), 1), m, "kWh") },
                 { m -> StatTile(stringResource(R.string.charges_cost), formatCost(cost), m) },
                 { m -> StatTile(stringResource(R.string.nav_drives), summary.firstLong("drives")?.toString() ?: NO_VALUE, m) },
@@ -228,6 +235,66 @@ fun TripScreen(container: AppContainer, carId: Int, onBack: () -> Unit) {
                 series = listOf(ChartSeries(stringResource(R.string.drive_battery), ColorBattery, level)),
                 fromMs = data.fromMs, toMs = data.toMs, yMin = 0.0, yMax = 100.0,
                 formatY = { formatNumber(it) + " %" }, formatValue = { formatNumber(it) + " %" },
+            )
+        }
+        val range = data["level"].points("time", "range")
+        if (range.isNotEmpty()) {
+            Panel(stringResource(R.string.chart_range)) {
+                TimeLineChart(
+                    series = listOf(ChartSeries(stringResource(R.string.overview_range), ColorRange, range)),
+                    fromMs = data.fromMs, toMs = data.toMs, yMin = 0.0,
+                    formatValue = { formatNumber(it) + " " + length },
+                )
+            }
+        }
+        val elevation = data["elevation"].points("time", "elevation")
+        if (elevation.isNotEmpty()) {
+            Panel(stringResource(R.string.chart_elevation)) {
+                TimeLineChart(
+                    series = listOf(ChartSeries(stringResource(R.string.chart_elevation), ColorElevation, elevation)),
+                    fromMs = data.fromMs, toMs = data.toMs,
+                    // Only drives have an elevation: no line across the time spent parked.
+                    maxGapMs = ((data.toMs - data.fromMs) / 100).coerceAtLeast(15 * MINUTE_MS),
+                    formatValue = { formatNumber(it) + " " + data.units.altitude },
+                )
+            }
+        }
+
+        // Over more than a day, the day is part of the time.
+        val manyDays = data.toMs - data.fromMs > DAY_MS
+        fun span(start: Long, end: Long?) =
+            (if (manyDays) formatDayTime(start) else formatTime(start)) + " – " + (end?.let { formatTime(it) } ?: "…")
+
+        val drives = data["drives"]
+        if (drives.rowCount > 0) Text(stringResource(R.string.nav_drives), style = MaterialTheme.typography.titleMedium)
+        for (row in 0 until drives.rowCount) {
+            val start = drives.longOrNull(row, "start_date") ?: continue
+            EventCard(
+                Icons.Outlined.DirectionsCar, stateColor(CarState.DRIVING), span(start, drives.longOrNull(row, "end_date")),
+                "${drives.stringOrNull(row, "start_address") ?: NO_VALUE} → ${drives.stringOrNull(row, "end_address") ?: stringResource(R.string.in_progress)}",
+                listOf(
+                    formatNumber(drives.doubleOrNull(row, "distance"), 1) + " " + length,
+                    formatNumber(drives.doubleOrNull(row, "consumption")) + " Wh/" + length,
+                    formatSocRange(drives.doubleOrNull(row, "start_battery_level"), drives.doubleOrNull(row, "end_battery_level")),
+                ).joinToString(" · "),
+                drives.doubleOrNull(row, "duration_min")?.let { formatMinutes(it) },
+            )
+        }
+
+        val charges = data["charges"]
+        if (charges.rowCount > 0) Text(stringResource(R.string.nav_charges), style = MaterialTheme.typography.titleMedium)
+        for (row in 0 until charges.rowCount) {
+            val start = charges.longOrNull(row, "start_date") ?: continue
+            EventCard(
+                Icons.Outlined.EvStation, stateColor(CarState.CHARGING), span(start, charges.longOrNull(row, "end_date")),
+                charges.stringOrNull(row, "address")?.takeIf { it.isNotBlank() } ?: stringResource(R.string.state_charging),
+                listOfNotNull(
+                    "+" + formatNumber(charges.doubleOrNull(row, "charge_energy_added"), 1) + " kWh",
+                    formatSocRange(charges.doubleOrNull(row, "start_battery_level"), charges.doubleOrNull(row, "end_battery_level")),
+                    charges.stringOrNull(row, "charge_type"),
+                    charges.doubleOrNull(row, "cost")?.let { formatCost(it) },
+                ).joinToString(" · "),
+                charges.doubleOrNull(row, "duration_min")?.let { formatMinutes(it) },
             )
         }
     }
@@ -345,7 +412,10 @@ fun UpdatesScreen(container: AppContainer, carId: Int, onBack: () -> Unit) {
 fun LocationsScreen(container: AppContainer, carId: Int, onBack: () -> Unit) {
     StatsPage(
         container, carId, "locations", stringResource(R.string.dash_locations), onBack,
-        queries = mapOf("summary" to "places/locations_summary.sql", "cities" to "places/locations_cities.sql", "last" to "places/locations_last.sql"),
+        queries = mapOf(
+            "summary" to "places/locations_summary.sql", "cities" to "places/locations_cities.sql", "last" to "places/locations_last.sql",
+            "geofences" to "places/geofences.sql",
+        ),
         initialPeriod = ListPeriod.YEAR,
     ) { data ->
         val summary = data["summary"]
@@ -365,6 +435,16 @@ fun LocationsScreen(container: AppContainer, carId: Int, onBack: () -> Unit) {
                     (0 until cities.rowCount).map { (cities.stringOrNull(it, "city") ?: NO_VALUE) to (cities.doubleOrNull(it, "addresses") ?: 0.0) },
                     ColorPlaces,
                 ) { formatNumber(it) }
+            }
+        }
+        val geofences = data["geofences"]
+        if (geofences.rowCount > 0) {
+            Panel(stringResource(R.string.locations_geofences)) {
+                NameValueRows(
+                    (0 until geofences.rowCount).map {
+                        (geofences.stringOrNull(it, "name") ?: NO_VALUE) to formatNumber(geofences.doubleOrNull(it, "radius")) + " m"
+                    },
+                )
             }
         }
         val last = data["last"]
@@ -387,7 +467,7 @@ fun LocationsScreen(container: AppContainer, carId: Int, onBack: () -> Unit) {
 fun VisitedScreen(container: AppContainer, carId: Int, onBack: () -> Unit) {
     StatsPage(
         container, carId, "visited", stringResource(R.string.dash_visited), onBack,
-        queries = mapOf("places" to "places/visited.sql"),
+        queries = mapOf("places" to "places/visited.sql", "countries" to "places/visited_countries.sql"),
         initialPeriod = ListPeriod.QUARTER,
     ) { data ->
         val table = data["places"]
@@ -404,6 +484,20 @@ fun VisitedScreen(container: AppContainer, carId: Int, onBack: () -> Unit) {
                 { m -> StatTile(stringResource(R.string.locations_cities), table.rowCount.toString(), m) },
             ),
         )
+        val byCountry = data["countries"]
+        for (row in 0 until byCountry.rowCount) {
+            FactCard(byCountry.stringOrNull(row, "country") ?: NO_VALUE) {
+                Facts(
+                    listOfNotNull(
+                        stringResource(R.string.locations_cities) to (byCountry.longOrNull(row, "cities")?.toString() ?: NO_VALUE),
+                        stringResource(R.string.visited_day_count) to (byCountry.longOrNull(row, "days")?.toString() ?: NO_VALUE),
+                        byCountry.longOrNull(row, "first_visit")?.let { stringResource(R.string.visited_first) to formatDayTime(it) },
+                        byCountry.longOrNull(row, "last_visit")?.let { stringResource(R.string.visited_last) to formatDayTime(it) },
+                    ),
+                )
+            }
+        }
+        Text(stringResource(R.string.locations_cities), style = MaterialTheme.typography.titleMedium)
         val daysLabel = stringResource(R.string.visited_days)
         for (row in rows) {
             val first = table.longOrNull(row, "first_visit")
@@ -425,7 +519,7 @@ fun VisitedScreen(container: AppContainer, carId: Int, onBack: () -> Unit) {
 fun DatabaseScreen(container: AppContainer, carId: Int, onBack: () -> Unit) {
     StatsPage(
         container, carId, "database", stringResource(R.string.dash_database), onBack,
-        queries = mapOf("info" to "system/database.sql", "tables" to "system/tables.sql"),
+        queries = mapOf("info" to "system/database.sql", "tables" to "system/tables.sql", "indexes" to "system/indexes.sql"),
         initialPeriod = ListPeriod.ALL, periods = emptyList(),
     ) { data ->
         val info = data["info"]
@@ -465,6 +559,19 @@ fun DatabaseScreen(container: AppContainer, carId: Int, onBack: () -> Unit) {
                     counts.entries.filter { it.value > 0 }.joinToString("  ·  ") { "${it.key} ${formatNumber(it.value)} $rowsLabel" },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        val indexes = data["indexes"]
+        if (indexes.rowCount > 0) {
+            val scans = stringResource(R.string.database_scans)
+            Panel(stringResource(R.string.database_indexes)) {
+                NameValueRows(
+                    (0 until minOf(indexes.rowCount, 15)).map {
+                        (indexes.stringOrNull(it, "index_name") ?: NO_VALUE) to
+                            formatNumber(indexes.doubleOrNull(it, "scans")) + " " + scans + "  ·  " +
+                            megabytes(indexes.doubleOrNull(it, "bytes")) + " " + megabyte
+                    },
                 )
             }
         }

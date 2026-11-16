@@ -161,3 +161,98 @@ fun CategoryBarChart(
         }
     }
 }
+
+/** One day of a [DailyRangeChart]: the extremes, and the band holding most of the day. */
+class DayRange(val timeMs: Long, val min: Double, val max: Double, val low: Double, val high: Double)
+
+/**
+ * One candle per day: a thin line from the minimum to the maximum, and a thick
+ * bar over the band [DayRange.low]..[DayRange.high]. Touch a day to read it.
+ */
+@Composable
+fun DailyRangeChart(
+    days: List<DayRange>,
+    fromMs: Long,
+    toMs: Long,
+    color: Color,
+    rangeLabel: String,
+    bandLabel: String,
+    modifier: Modifier = Modifier,
+    formatY: (Double) -> String = { formatNumber(it) },
+    formatValue: (Double) -> String = { formatNumber(it, 1) },
+) {
+    val textMeasurer = rememberTextMeasurer()
+    val labelStyle: TextStyle = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val tooltipStyle: TextStyle = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.inverseOnSurface)
+    val tooltipBackground = MaterialTheme.colorScheme.inverseSurface
+    val gridColor = MaterialTheme.colorScheme.outlineVariant
+    val dateFormat = remember { java.text.SimpleDateFormat("d MMM", java.util.Locale.getDefault()) }
+    val dayMs = 24 * 60 * 60 * 1000L
+    // The scale is rounded outwards to multiples of five, so the labels are round numbers.
+    val steps = 4
+    val low = kotlin.math.floor((days.minOfOrNull { it.min } ?: 0.0) / 5) * 5
+    val step = (kotlin.math.ceil(((days.maxOfOrNull { it.max } ?: 0.0) - low) / steps / 5) * 5).coerceAtLeast(5.0)
+    val high = low + step * steps
+    val span = (toMs - fromMs).coerceAtLeast(dayMs).toDouble()
+    var selected by remember(days) { mutableStateOf<DayRange?>(null) }
+    val plot = remember { FloatArray(2) }
+
+    Canvas(
+        modifier.fillMaxWidth().height(200.dp).pointerInput(days) {
+            detectTapGestures { offset ->
+                val time = fromMs + span * ((offset.x - plot[0]) / plot[1]).coerceIn(0f, 1f)
+                selected = days.minByOrNull { abs(it.timeMs + dayMs / 2 - time) }
+            }
+        },
+    ) {
+        if (days.isEmpty()) return@Canvas
+        val yLabels = (0..steps).map { low + (high - low) * it / steps }
+        val measured = yLabels.map { textMeasurer.measure(formatY(it), labelStyle) }
+        val gutter = measured.maxOf { it.size.width } + 8.dp.toPx()
+        val bottom = size.height - measured.first().size.height - 6.dp.toPx()
+        val top = measured.first().size.height / 2f
+        val width = size.width - gutter
+        plot[0] = gutter
+        plot[1] = width
+
+        fun x(timeMs: Long) = gutter + width * ((timeMs + dayMs / 2 - fromMs) / span).toFloat()
+        fun y(value: Double) = bottom - (bottom - top) * ((value - low) / (high - low)).toFloat()
+
+        yLabels.forEachIndexed { index, value ->
+            val lineY = y(value)
+            drawLine(gridColor, Offset(gutter, lineY), Offset(size.width, lineY), strokeWidth = 1f)
+            drawText(measured[index], topLeft = Offset(0f, lineY - measured[index].size.height / 2f))
+        }
+        (0..3).forEach { index ->
+            val label = textMeasurer.measure(dateFormat.format(java.util.Date(fromMs + (span * index / 3).toLong())), labelStyle)
+            val labelX = (gutter + width * index / 3 - label.size.width / 2f).coerceIn(gutter, size.width - label.size.width)
+            drawText(label, topLeft = Offset(labelX, bottom + 6.dp.toPx()))
+        }
+
+        val body = (width * (dayMs / span).toFloat() * 0.6f).coerceIn(2.dp.toPx(), 14.dp.toPx())
+        days.forEach { day ->
+            val centre = x(day.timeMs)
+            if (centre < gutter || centre > size.width) return@forEach
+            val tint = if (selected == null || selected === day) color else color.copy(alpha = 0.4f)
+            drawLine(tint, Offset(centre, y(day.max)), Offset(centre, y(day.min)), strokeWidth = 1.5.dp.toPx())
+            val bandTop = y(day.high)
+            drawRoundRect(
+                tint,
+                topLeft = Offset(centre - body / 2, bandTop),
+                size = Size(body, (y(day.low) - bandTop).coerceAtLeast(1.dp.toPx())),
+                cornerRadius = CornerRadius(1.5.dp.toPx()),
+            )
+        }
+        selected?.let { day ->
+            drawTooltip(
+                textMeasurer,
+                listOf(
+                    TooltipLine(dateFormat.format(java.util.Date(day.timeMs + dayMs / 2))),
+                    TooltipLine("$rangeLabel : ${formatValue(day.min)} – ${formatValue(day.max)}", color),
+                    TooltipLine("$bandLabel : ${formatValue(day.low)} – ${formatValue(day.high)}", color),
+                ),
+                x(day.timeMs), top, gutter, size.width, tooltipStyle, tooltipBackground,
+            )
+        }
+    }
+}

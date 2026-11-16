@@ -4,6 +4,7 @@ package adidoo.mateview.ui.screens.dashboards
 import adidoo.mateview.AppContainer
 import adidoo.mateview.R
 import adidoo.mateview.data.net.Table
+import adidoo.mateview.data.repo.GeoPoint
 import adidoo.mateview.data.repo.Granularity
 import adidoo.mateview.data.repo.ListPeriod
 import adidoo.mateview.data.repo.Point
@@ -17,12 +18,16 @@ import adidoo.mateview.data.repo.stringOrNull
 import adidoo.mateview.ui.components.AdaptiveTiles
 import adidoo.mateview.ui.components.CategoryBarChart
 import adidoo.mateview.ui.components.ChartSeries
+import adidoo.mateview.ui.components.DailyRangeChart
+import adidoo.mateview.ui.components.DayRange
 import adidoo.mateview.ui.components.NO_VALUE
 import adidoo.mateview.ui.components.Panel
 import adidoo.mateview.ui.components.PeriodChips
+import adidoo.mateview.ui.components.ScatterChart
 import adidoo.mateview.ui.components.StaleDataNote
 import adidoo.mateview.ui.components.StatTile
 import adidoo.mateview.ui.components.TimeLineChart
+import adidoo.mateview.ui.components.TrackMap
 import adidoo.mateview.ui.components.formatCost
 import adidoo.mateview.ui.components.formatMinutes
 import adidoo.mateview.ui.components.formatNumber
@@ -108,7 +113,7 @@ internal fun StatsPage(
 /** Small labelled values that wrap onto as many lines as the width needs. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Facts(facts: List<Pair<String, String>>) {
+internal fun Facts(facts: List<Pair<String, String>>) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         facts.forEach { (label, value) ->
             Column {
@@ -120,7 +125,7 @@ private fun Facts(facts: List<Pair<String, String>>) {
 }
 
 @Composable
-private fun FactCard(title: String, content: @Composable () -> Unit) {
+internal fun FactCard(title: String, content: @Composable () -> Unit) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
@@ -152,6 +157,19 @@ internal fun RankList(items: List<Pair<String, Double>>, color: Color, format: (
     }
 }
 
+/** Plain lines: a name on the left, its value on the right. */
+@Composable
+internal fun NameValueRows(rows: List<Pair<String, String>>) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        rows.forEach { (name, value) ->
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(name, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
 private fun Table.rows(): IntRange = 0 until rowCount
 
 /** Charts over "all time" start at the first point instead of 1970. */
@@ -165,7 +183,7 @@ fun StatisticsScreen(container: AppContainer, carId: Int, onBack: () -> Unit) {
     var granularity by rememberSaveable { mutableStateOf(Granularity.MONTH) }
     StatsPage(
         container, carId, "statistics", stringResource(R.string.dash_statistics), onBack,
-        queries = mapOf("rows" to "statistics.sql"),
+        queries = mapOf("rows" to "statistics.sql", "gross" to "statistics_gross.sql"),
         initialPeriod = ListPeriod.YEAR,
         granularity = granularity,
         filters = {
@@ -194,6 +212,7 @@ fun StatisticsScreen(container: AppContainer, carId: Int, onBack: () -> Unit) {
         val table = data["rows"]
         val length = data.units.length
         if (table.rowCount == 0) NoData()
+        val gross = data["gross"].let { g -> g.rows().associate { g.longOrNull(it, "time") to g.doubleOrNull(it, "consumption_gross") } }
         // The query shifts dates to local time, so they are formatted as if they were UTC.
         val pattern = when (granularity) {
             Granularity.DAY -> "EEEE d MMMM yyyy"
@@ -208,11 +227,12 @@ fun StatisticsScreen(container: AppContainer, carId: Int, onBack: () -> Unit) {
                 val drives = table.longOrNull(row, "drives")
                 if (drives != null) {
                     Facts(
-                        listOf(
+                        listOfNotNull(
                             stringResource(R.string.nav_drives) to drives.toString(),
                             stringResource(R.string.drives_distance) to formatNumber(table.doubleOrNull(row, "distance")) + " " + length,
                             stringResource(R.string.drives_duration) to formatMinutes(table.doubleOrNull(row, "duration_min")),
                             stringResource(R.string.drives_consumption) to formatNumber(table.doubleOrNull(row, "consumption")) + " Wh/" + length,
+                            gross[time]?.let { stringResource(R.string.stats_gross) to formatNumber(it) + " Wh/" + length },
                             stringResource(R.string.drives_energy) to formatNumber(table.doubleOrNull(row, "energy"), 1) + " kWh",
                             stringResource(R.string.drive_outside_temp) to formatNumber(table.doubleOrNull(row, "outside_temp"), 1) + " °" + data.units.temperature,
                         ),
@@ -305,6 +325,8 @@ fun ChargingStatsScreen(container: AppContainer, carId: Int, onBack: () -> Unit)
         queries = mapOf(
             "summary" to "charging_summary.sql", "ac_dc" to "charging_ac_dc.sql",
             "stations" to "charging_stations.sql", "soc" to "charging_soc.sql",
+            "costs" to "charging_costs.sql", "map" to "charging_map.sql", "stations_cost" to "charging_stations_cost.sql",
+            "dc_curve" to "charging_dc_curve.sql", "soc_start" to "charging_soc_start.sql", "soc_end" to "charging_soc_end.sql",
         ),
         initialPeriod = ListPeriod.ALL,
     ) { data ->
@@ -332,6 +354,30 @@ fun ChargingStatsScreen(container: AppContainer, carId: Int, onBack: () -> Unit)
                 },
             ),
         )
+
+        // Only when costs were entered in TeslaMate.
+        val costs = data["costs"]
+        if (cost != null && cost > 0) {
+            AdaptiveTiles(
+                listOf(
+                    { m -> StatTile(stringResource(R.string.stats_supercharger_cost), formatCost(costs.firstDouble("supercharger_cost")), m) },
+                    { m -> StatTile(stringResource(R.string.stats_cost_per_kwh_ac), formatNumber(costs.firstDouble("cost_per_kwh_ac"), 3), m) },
+                    { m -> StatTile(stringResource(R.string.stats_cost_per_kwh_dc), formatNumber(costs.firstDouble("cost_per_kwh_dc"), 3), m) },
+                ),
+            )
+        }
+
+        val map = data["map"]
+        val places = map.rows().mapNotNull { row ->
+            val latitude = map.doubleOrNull(row, "latitude") ?: return@mapNotNull null
+            val longitude = map.doubleOrNull(row, "longitude") ?: return@mapNotNull null
+            GeoPoint(latitude, longitude) to (map.doubleOrNull(row, "energy") ?: 0.0)
+        }
+        if (places.isNotEmpty()) {
+            Panel(stringResource(R.string.stats_charging_map)) {
+                TrackMap(places.map { it.first }, color = ColorCharge, showLine = false, weights = places.map { it.second })
+            }
+        }
 
         val acDc = data["ac_dc"]
         if (acDc.rowCount > 0) {
@@ -365,6 +411,40 @@ fun ChargingStatsScreen(container: AppContainer, carId: Int, onBack: () -> Unit)
             }
         }
 
+        for ((name, title, color) in listOf(
+            Triple("soc_start", R.string.stats_soc_at_start, ColorAmber),
+            Triple("soc_end", R.string.stats_soc_at_end, ColorCharge),
+        )) {
+            val bands = data[name]
+            if (bands.rowCount == 0) continue
+            // Every 5 % band between the lowest and the highest, including the empty ones.
+            val found = bands.rows().associate { (bands.doubleOrNull(it, "soc") ?: 0.0).toInt() to (bands.doubleOrNull(it, "n") ?: 0.0) }
+            val levels = (found.keys.min()..found.keys.max() step 5).map { it.toDouble() }
+            val counts = levels.map { found[it.toInt()] ?: 0.0 }
+            Panel(stringResource(title)) {
+                CategoryBarChart(
+                    labels = levels.map { formatNumber(it) },
+                    values = counts,
+                    color = color,
+                    formatValue = { "${formatNumber(levels[it])} % : ${formatNumber(counts[it])}" },
+                )
+            }
+        }
+
+        val curve = data["dc_curve"]
+        if (curve.rowCount > 0) {
+            Panel(stringResource(R.string.stats_dc_curve)) {
+                ScatterChart(
+                    points = curve.rows().mapNotNull { row ->
+                        (curve.doubleOrNull(row, "soc") ?: return@mapNotNull null) to (curve.doubleOrNull(row, "power") ?: return@mapNotNull null)
+                    },
+                    color = ColorCharge,
+                    formatX = { formatNumber(it) + " %" },
+                    formatY = { formatNumber(it) + " kW" },
+                )
+            }
+        }
+
         val stations = data["stations"]
         if (stations.rowCount > 0) {
             Panel(stringResource(R.string.stats_top_stations)) {
@@ -372,6 +452,16 @@ fun ChargingStatsScreen(container: AppContainer, carId: Int, onBack: () -> Unit)
                     stations.rows().map { (stations.stringOrNull(it, "location") ?: NO_VALUE) to (stations.doubleOrNull(it, "energy") ?: 0.0) },
                     ColorCharge,
                 ) { formatNumber(it, 1) + " kWh" }
+            }
+        }
+
+        val byCost = data["stations_cost"]
+        if (byCost.rowCount > 0) {
+            Panel(stringResource(R.string.stats_top_stations_cost)) {
+                RankList(
+                    byCost.rows().map { (byCost.stringOrNull(it, "location") ?: NO_VALUE) to (byCost.doubleOrNull(it, "cost") ?: 0.0) },
+                    ColorAmber,
+                ) { formatCost(it) }
             }
         }
     }
@@ -383,7 +473,10 @@ fun ChargingStatsScreen(container: AppContainer, carId: Int, onBack: () -> Unit)
 fun EfficiencyScreen(container: AppContainer, carId: Int, onBack: () -> Unit) {
     StatsPage(
         container, carId, "efficiency", stringResource(R.string.dash_efficiency), onBack,
-        queries = mapOf("summary" to "efficiency_summary.sql", "by_temp" to "efficiency_by_temp.sql", "derived" to "derived_efficiency.sql"),
+        queries = mapOf(
+            "summary" to "efficiency_summary.sql", "by_temp" to "efficiency_by_temp.sql", "derived" to "derived_efficiency.sql",
+            "gross" to "overview/consumption_gross.sql",
+        ),
         initialPeriod = ListPeriod.ALL,
     ) { data ->
         val summary = data["summary"]
@@ -391,6 +484,7 @@ fun EfficiencyScreen(container: AppContainer, carId: Int, onBack: () -> Unit) {
         AdaptiveTiles(
             listOf(
                 { m -> StatTile(stringResource(R.string.overview_consumption_net), formatNumber(summary.firstDouble("consumption_net")), m, "Wh/$length") },
+                { m -> StatTile(stringResource(R.string.overview_consumption_gross), formatNumber(data["gross"].firstDouble("consumption_gross")), m, "Wh/$length") },
                 { m -> StatTile(stringResource(R.string.health_efficiency), formatNumber(summary.firstDouble("car_efficiency")), m, "Wh/$length") },
                 { m -> StatTile(stringResource(R.string.health_logged), formatNumber(summary.firstDouble("distance")), m, length) },
             ),
@@ -478,7 +572,10 @@ fun MileageScreen(container: AppContainer, carId: Int, onBack: () -> Unit) {
 fun TemperaturesScreen(container: AppContainer, carId: Int, onBack: () -> Unit) {
     StatsPage(
         container, carId, "temperatures", stringResource(R.string.dash_temperatures), onBack,
-        queries = mapOf("summary" to "temperature_summary.sql", "series" to "temperature_series.sql", "daily" to "temperature_daily.sql"),
+        queries = mapOf(
+            "summary" to "temperature_summary.sql", "series" to "temperature_series.sql", "daily" to "temperature_daily.sql",
+            "charging" to "temperature_charging.sql",
+        ),
         initialPeriod = ListPeriod.MONTH,
     ) { data ->
         val summary = data["summary"]
@@ -501,26 +598,47 @@ fun TemperaturesScreen(container: AppContainer, carId: Int, onBack: () -> Unit) 
 
         val inside = data["series"].points("time", "inside_temp")
         val outside = data["series"].points("time", "outside_temp")
+        val setpoint = data["series"].points("time", "setpoint")
         Panel(stringResource(R.string.stats_temperature_history)) {
             if (inside.isEmpty() && outside.isEmpty()) NoData() else TimeLineChart(
-                series = listOf(
+                series = listOfNotNull(
                     ChartSeries(stringResource(R.string.overview_temp_outside), ColorCold, outside),
                     ChartSeries(stringResource(R.string.overview_temp_inside), ColorWarm, inside),
+                    ChartSeries(stringResource(R.string.stats_setpoint), ColorAmber, setpoint).takeIf { setpoint.isNotEmpty() },
                 ),
                 fromMs = chartFrom(data, inside, outside), toMs = data.toMs,
                 formatValue = { formatNumber(it, 1) + " " + unit },
             )
         }
 
-        val low = data["daily"].points("time", "outside_min")
-        val high = data["daily"].points("time", "outside_max")
+        val charging = data["charging"].points("time", "outside_temp")
+        if (charging.isNotEmpty()) {
+            Panel(stringResource(R.string.stats_temp_charging)) {
+                TimeLineChart(
+                    series = listOf(ChartSeries(stringResource(R.string.overview_temp_outside), ColorCharge, charging)),
+                    fromMs = chartFrom(data, charging), toMs = data.toMs,
+                    formatValue = { formatNumber(it, 1) + " " + unit },
+                )
+            }
+        }
+
+        val daily = data["daily"]
+        val days = daily.rows().mapNotNull { row ->
+            DayRange(
+                timeMs = daily.longOrNull(row, "time") ?: return@mapNotNull null,
+                min = daily.doubleOrNull(row, "outside_min") ?: return@mapNotNull null,
+                max = daily.doubleOrNull(row, "outside_max") ?: return@mapNotNull null,
+                low = daily.doubleOrNull(row, "outside_p15") ?: return@mapNotNull null,
+                high = daily.doubleOrNull(row, "outside_p85") ?: return@mapNotNull null,
+            )
+        }
         Panel(stringResource(R.string.stats_daily_outside)) {
-            if (low.isEmpty()) NoData() else TimeLineChart(
-                series = listOf(
-                    ChartSeries(stringResource(R.string.stats_max), ColorWarm, high),
-                    ChartSeries(stringResource(R.string.stats_min), ColorCold, low),
-                ),
-                fromMs = chartFrom(data, low), toMs = data.toMs,
+            if (days.isEmpty()) NoData() else DailyRangeChart(
+                days = days,
+                fromMs = if (data.fromMs > 0) data.fromMs else days.first().timeMs, toMs = data.toMs,
+                color = ColorCold,
+                rangeLabel = stringResource(R.string.stats_daily_range),
+                bandLabel = stringResource(R.string.stats_daily_band),
                 formatValue = { formatNumber(it, 1) + " " + unit },
             )
         }

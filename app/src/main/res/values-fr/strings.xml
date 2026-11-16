@@ -221,7 +221,7 @@
     <string name="stats_avg">Moyenne</string>
     <string name="stats_max">Max</string>
     <string name="stats_temperature_history">Intérieur et extérieur</string>
-    <string name="stats_daily_outside">Minimum et maximum extérieurs par jour</string>
+    <string name="stats_daily_outside">Température extérieure par jour</string>
     <string name="timeline_parked">En stationnement</string>
     <string name="trip_driving">Conduite</string>
     <string name="trip_charging">Charge</string>
@@ -246,4 +246,23 @@
     <string name="database_rows">lignes</string>
     <string name="unit_megabyte">Mo</string>
     <string name="error_offline">Le serveur est injoignable. Vérifiez la connexion réseau.</string>
+    <string name="stats_gross">Conso. brute</string>
+    <string name="stats_supercharger_cost">Coût Superchargeur</string>
+    <string name="stats_cost_per_kwh_ac">Coût / kWh AC</string>
+    <string name="stats_cost_per_kwh_dc">Coût / kWh DC</string>
+    <string name="stats_charging_map">Lieux de charge, selon l\'énergie</string>
+    <string name="stats_soc_at_start">Niveau de batterie au début des charges (%)</string>
+    <string name="stats_soc_at_end">Niveau de batterie à la fin des charges (%)</string>
+    <string name="stats_dc_curve">Courbe de charge DC (puissance médiane)</string>
+    <string name="stats_top_stations_cost">Lieux de charge par coût</string>
+    <string name="stats_setpoint">Consigne</string>
+    <string name="stats_temp_charging">Température extérieure pendant les charges</string>
+    <string name="stats_daily_range">Min – max</string>
+    <string name="stats_daily_band">L\'essentiel du jour</string>
+    <string name="locations_geofences">Géorepères</string>
+    <string name="visited_day_count">Jours</string>
+    <string name="visited_first">Première visite</string>
+    <string name="visited_last">Dernière visite</string>
+    <string name="database_indexes">Index les plus utilisés</string>
+    <string name="database_scans">lectures</string>
 </resources>
